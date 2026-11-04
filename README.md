@@ -198,6 +198,35 @@ qui renseigne `SCRIPT_NAME` avec le chemin demandé…) :
 php tools/test-urls.php
 ```
 
+La compatibilité MySQL des requêtes agrégées se contrôle également sans serveur :
+
+```bash
+php tools/test-sql.php
+```
+
+> **Pourquoi ce contrôle ?** Depuis MySQL 5.7, le mode `ONLY_FULL_GROUP_BY` est actif
+> par défaut : il refuse une colonne non agrégée dans le `ORDER BY` d'une requête
+> groupée (erreur 1055). SQLite — la base de démonstration — ne reproduit pas cette
+> règle, si bien qu'une requête invalide pour MySQL pouvait passer tous les tests
+> locaux puis faire échouer le tableau de bord en production.
+> Ce script relit le code source et vérifie chaque requête groupée.
+
+### 3.9 En cas d'erreur « Une erreur est survenue »
+
+Lancez le diagnostic : il vérifie l'environnement, la configuration, la base, chaque
+requête utilisée par le tableau de bord et « Mes appels », puis **rejoue le rendu de ces
+deux écrans** exactement comme le navigateur. En cas d'échec, il affiche la classe de
+l'exception, le message, le fichier et la ligne.
+
+```bash
+php tools/diagnose.php
+# terminal Windows sans couleurs :
+php tools/diagnose.php --plain
+```
+
+Le détail des erreurs 500 est aussi écrit dans `storage/logs/php-AAAA-MM-JJ.log`
+si le dossier est accessible en écriture, sinon dans le journal du serveur web.
+
 Le script réinitialise d'abord les compteurs de tentatives de connexion
 (`tools/clear-login-attempts.php`) pour ne pas buter sur le blocage de sécurité
 après une série de mots de passe erronés. Cette commande est également utilisable seule :
