@@ -13,6 +13,7 @@ use App\Models\Sector;
 use App\Models\Service;
 use App\Models\SpeechBlock;
 use App\Models\Stage;
+use App\Services\ContentImporter;
 use App\Services\SpeechRenderer;
 
 /**
@@ -45,6 +46,35 @@ final class BlockController extends AdminController
                 'active' => count(array_filter($blocks, static fn (array $b): bool => (int) $b['is_active'] === 1)),
             ],
         ], 'blocks');
+    }
+
+    /**
+     * Restaure le contenu livré avec l'application (database/content/).
+     * Utile après avoir désactivé ou modifié des blocs pour un test.
+     */
+    public function restoreContent(): void
+    {
+        Http::verifyCsrf();
+        try {
+            $stats = (new ContentImporter())->import((int) Auth::user()['id']);
+        } catch (\Throwable $e) {
+            $this->failure('/admin/blocs', 'Restauration impossible : ' . $e->getMessage());
+        }
+
+        $changed = $stats['blocks_created'] + $stats['blocks_updated']
+            + $stats['objections_created'] + $stats['objections_updated'];
+
+        if ($changed === 0) {
+            Session::flash('info', 'Le contenu d\'origine est déjà en place : rien à restaurer.');
+            $this->redirect('/admin/blocs');
+        }
+
+        Session::flash('success', sprintf(
+            'Contenu restauré : %d bloc(s) et %d objection(s) mis à jour. Vos créations manuelles sont intactes.',
+            $stats['blocks_created'] + $stats['blocks_updated'],
+            $stats['objections_created'] + $stats['objections_updated']
+        ));
+        $this->redirect('/admin/blocs');
     }
 
     /** Formulaire de création. */

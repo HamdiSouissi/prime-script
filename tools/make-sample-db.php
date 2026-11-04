@@ -92,7 +92,8 @@ CREATE TABLE services (
 
 CREATE TABLE speech_blocks (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
-    type       TEXT NOT NULL CHECK (type IN ('presentation','accroche','decouverte','argumentaire','preuve','tarif','appel_action','objection')),
+    type       TEXT NOT NULL CHECK (type IN ('presentation','accroche','barrage','repondeur','decouverte','argumentaire','preuve','tarif','appel_action','conclusion','objection')),
+    code       TEXT NULL UNIQUE,
     sector_id  INTEGER NULL REFERENCES sectors (id) ON DELETE SET NULL,
     stage_id   INTEGER NULL REFERENCES stages (id) ON DELETE SET NULL,
     service_id INTEGER NULL REFERENCES services (id) ON DELETE SET NULL,
@@ -129,6 +130,7 @@ CREATE TABLE speech_block_versions (
 
 CREATE TABLE objections (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    code       TEXT NULL UNIQUE,
     question   TEXT NOT NULL,
     answer     TEXT NOT NULL,
     service_id INTEGER NULL REFERENCES services (id) ON DELETE SET NULL,
@@ -147,9 +149,10 @@ CREATE TABLE calls (
     service_id        INTEGER NULL REFERENCES services (id) ON DELETE SET NULL,
     entreprise_client TEXT NOT NULL DEFAULT '',
     contact           TEXT NOT NULL DEFAULT '',
-    result            TEXT NOT NULL CHECK (result IN ('rdv','devis','rappeler','pas_interesse','injoignable')),
+    result            TEXT NOT NULL CHECK (result IN ('rdv','devis','rappeler','pas_interesse','injoignable','ne_plus_rappeler')),
     note              TEXT NOT NULL DEFAULT '',
     callback_date     TEXT NULL,
+    do_not_call       INTEGER NOT NULL DEFAULT 0,
     created_at        TEXT NOT NULL DEFAULT (datetime('now','localtime'))
 );
 CREATE INDEX idx_calls_user_date ON calls (user_id, created_at);

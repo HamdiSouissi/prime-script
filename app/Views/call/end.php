@@ -17,19 +17,30 @@ $chosenResult = (string) ($old['result'] ?? '');
 $chosenService = (int) ($old['service_id'] ?? ($context['service_id'] ?? 0));
 $note = (string) ($old['note'] ?? '');
 $callback = (string) ($old['callback_date'] ?? '');
+$conclusions = $conclusions ?? [];
+// Associe chaque phrase de conclusion à son résultat (code « fin-rdv », « fin-devis »…).
+$scripts = [];
+foreach ($conclusions as $conclusion) {
+    $code = (string) ($conclusion['code'] ?? '');
+    if (str_starts_with($code, 'fin-')) {
+        $scripts[substr($code, 4)] = $conclusion;
+    }
+}
 $descriptions = [
-    'rdv'           => 'Un créneau est fixé',
-    'devis'         => 'Devis écrit à envoyer',
-    'rappeler'      => 'Rappel à programmer',
-    'pas_interesse' => 'Sans suite',
-    'injoignable'   => 'Pas de réponse',
+    'rdv'              => 'Un créneau est fixé',
+    'devis'            => 'Devis écrit à envoyer',
+    'rappeler'         => 'Rappel à programmer',
+    'pas_interesse'    => 'Sans suite',
+    'injoignable'      => 'Pas de réponse',
+    'ne_plus_rappeler' => 'Opposition · ne plus contacter',
 ];
 $dots = [
-    'rdv'           => 'var(--ok)',
-    'devis'         => 'var(--info)',
-    'rappeler'      => 'var(--warn)',
-    'pas_interesse' => 'var(--muted-2)',
-    'injoignable'   => 'var(--err)',
+    'rdv'              => 'var(--ok)',
+    'devis'            => 'var(--info)',
+    'rappeler'         => 'var(--warn)',
+    'pas_interesse'    => 'var(--muted-2)',
+    'injoignable'      => 'var(--err)',
+    'ne_plus_rappeler' => 'var(--err)',
 ];
 ?>
 <?= App\Core\App::render('partials/stepper', ['step' => 5]) ?>
@@ -65,8 +76,32 @@ $dots = [
                 <?php if (isset($errors['result'])): ?>
                     <p class="field__error mt-2" role="alert"><?= Sanitizer::e($errors['result']) ?></p>
                 <?php endif; ?>
+                <p class="field__hint mt-3" style="margin-bottom:0">
+                    <?= Icon::svg('shield', '', 14) ?>
+                    Si la personne demande à ne plus être rappelée, choisissez
+                    <strong>Ne plus rappeler</strong> : l'entreprise est marquée dans le journal et sort des rappels.
+                </p>
             </fieldset>
         </div>
+
+        <?php if ($scripts !== []): ?>
+        <div class="card mb-3" data-conclusion-card>
+            <div class="row row--between" style="gap:var(--s-2);align-items:flex-start;flex-wrap:wrap">
+                <h2 class="card__title" style="margin:0;font-size:var(--fs-md)">
+                    <?= Icon::svg('message', '', 16) ?> Quoi dire pour conclure
+                </h2>
+                <span class="badge badge--muted" data-conclusion-hint>S'affiche selon le résultat choisi</span>
+            </div>
+            <?php foreach ($scripts as $key => $script): ?>
+                <div class="conclusion-script rich mt-3" data-conclusion="<?= Sanitizer::e($key) ?>" hidden data-conclusion-key="<?= Sanitizer::e($key) ?>">
+                    <p class="text-xs text-muted-2" style="text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-bottom:var(--s-2)">
+                        <?= Sanitizer::e((string) ($script['title'] ?? '')) ?>
+                    </p>
+                    <?= $script['html'] ?>
+                </div>
+            <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
 
         <div class="card mb-3">
             <div class="form-grid">
@@ -84,7 +119,7 @@ $dots = [
 
                 <div class="field" data-callback-field>
                     <label for="callback_date">Date de rappel <span class="field__optional">(si à rappeler)</span></label>
-                    <input type="date" id="callback_date" name="callback_date" value="<?= Sanitizer::e($callback) ?>">
+                    <input type="date" id="callback_date" name="callback_date" value="<?= Sanitizer::e($callback) ?>" data-callback-date>
                     <span class="field__hint">Le rappel apparaîtra dans « Mes appels ».</span>
                 </div>
 

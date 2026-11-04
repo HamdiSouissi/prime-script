@@ -103,8 +103,9 @@ CREATE TABLE services (
 -- ---------------------------------------------------------------------
 CREATE TABLE speech_blocks (
     id          INT UNSIGNED NOT NULL AUTO_INCREMENT,
-    type        ENUM('presentation','accroche','decouverte','argumentaire','preuve','tarif','appel_action','objection')
+    type        ENUM('presentation','accroche','barrage','repondeur','decouverte','argumentaire','preuve','tarif','appel_action','conclusion','objection')
                 NOT NULL,
+    code        VARCHAR(80) NULL DEFAULT NULL,               -- identifiant stable du contenu livré (import rejouable)
     sector_id   INT UNSIGNED NULL DEFAULT NULL,
     stage_id    INT UNSIGNED NULL DEFAULT NULL,
     service_id  INT UNSIGNED NULL DEFAULT NULL,
@@ -117,6 +118,7 @@ CREATE TABLE speech_blocks (
     created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
+    UNIQUE KEY uq_blocks_code (code),
     KEY idx_blocks_selection (type, is_active, position),
     KEY idx_blocks_sector (sector_id),
     KEY idx_blocks_stage (stage_id),
@@ -158,6 +160,7 @@ CREATE TABLE speech_block_versions (
 -- ---------------------------------------------------------------------
 CREATE TABLE objections (
     id         INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    code       VARCHAR(120) NULL DEFAULT NULL,               -- identifiant stable du contenu livré
     question   VARCHAR(255) NOT NULL,
     answer     MEDIUMTEXT NOT NULL,                          -- HTML enrichi simple (puces courtes)
     service_id INT UNSIGNED NULL DEFAULT NULL,
@@ -167,6 +170,7 @@ CREATE TABLE objections (
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
+    UNIQUE KEY uq_objections_code (code),
     KEY idx_objections_order (is_active, position),
     KEY idx_objections_service (service_id),
     KEY idx_objections_sector (sector_id),
@@ -185,9 +189,10 @@ CREATE TABLE calls (
     service_id       INT UNSIGNED NULL DEFAULT NULL,
     entreprise_client VARCHAR(160) NOT NULL DEFAULT '',
     contact          VARCHAR(120) NOT NULL DEFAULT '',
-    result           ENUM('rdv','devis','rappeler','pas_interesse','injoignable') NOT NULL,
+    result           ENUM('rdv','devis','rappeler','pas_interesse','injoignable','ne_plus_rappeler') NOT NULL,
     note             VARCHAR(600) NOT NULL DEFAULT '',
     callback_date    DATE NULL DEFAULT NULL,
+    do_not_call      TINYINT(1) NOT NULL DEFAULT 0,            -- 1 = le prospect a demandé à ne plus être rappelé
     created_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     KEY idx_calls_user_date (user_id, created_at),
@@ -196,6 +201,7 @@ CREATE TABLE calls (
     KEY idx_calls_sector (sector_id),
     KEY idx_calls_service (service_id),
     KEY idx_calls_callback (callback_date),
+    KEY idx_calls_dnc (do_not_call),
     CONSTRAINT fk_calls_user    FOREIGN KEY (user_id)    REFERENCES users (id)    ON DELETE RESTRICT,
     CONSTRAINT fk_calls_sector  FOREIGN KEY (sector_id)  REFERENCES sectors (id)  ON DELETE SET NULL,
     CONSTRAINT fk_calls_stage   FOREIGN KEY (stage_id)   REFERENCES stages (id)   ON DELETE SET NULL,

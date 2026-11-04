@@ -37,6 +37,25 @@ $queryBase = array_filter([
     </div>
 </div>
 
+<details class="card card--pad-sm mb-4">
+    <summary style="cursor:pointer;font-weight:600">
+        <?= Icon::svg('refresh', '', 16) ?> Restaurer le contenu d'origine
+    </summary>
+    <p class="text-sm text-muted mt-3" style="margin-bottom:var(--s-3)">
+        Le contenu livré avec l'application (présentations, accroches, questions, argumentaires,
+        tarifs, appels à l'action et objections) est réappliqué depuis
+        <code>database/content/</code>. Vos blocs créés à la main ne sont pas touchés, et
+        chaque bloc modifié archive sa version précédente dans son historique.
+    </p>
+    <?= View::actionForm(
+        '/admin/contenu/restaurer',
+        [],
+        Icon::svg('refresh') . ' Restaurer le contenu d\'origine',
+        'btn btn--secondary',
+        'Réappliquer le contenu livré ? Vos blocs créés à la main ne seront pas touchés.'
+    ) ?>
+</details>
+
 <form method="get" action="<?= Sanitizer::e(View::url('/admin/blocs')) ?>" class="filters" aria-label="Filtrer les blocs">
     <div class="field">
         <label for="f-type">Type</label>

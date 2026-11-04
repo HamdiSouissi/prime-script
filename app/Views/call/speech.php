@@ -67,7 +67,7 @@ foreach ($sections as $items) {
 
         <?php foreach (SpeechBlock::CALL_TYPES as $index => $type):
             $blocks = $sections[$type] ?? [];
-            $label = SpeechBlock::typeLabel($type);
+            $label = SpeechBlock::typeLabelFor($type, $blocks[0] ?? []);
             $icon = SpeechBlock::TYPE_ICONS[$type] ?? 'info';
             $count = count($blocks);
             ?>
@@ -95,9 +95,16 @@ foreach ($sections as $items) {
                                 <?php if (!empty($block['title']) && $count > 1): ?>
                                     <p class="text-xs text-muted-2 mb-0" style="text-transform:uppercase;letter-spacing:.08em;font-weight:600">
                                         <?= Sanitizer::e($block['title']) ?>
-                                        <?php if (!empty($block['sector_name']) || !empty($block['service_name'])): ?>
+                                        <?php
+                                        $tags = array_filter([
+                                            (string) ($block['sector_name'] ?? ''),
+                                            (string) ($block['stage_name'] ?? ''),
+                                            (string) ($block['service_name'] ?? ''),
+                                        ]);
+                                        ?>
+                                        <?php if ($tags !== []): ?>
                                             <span class="text-muted-2" style="text-transform:none;letter-spacing:0;font-weight:400">
-                                                · <?= Sanitizer::e(implode(' · ', array_filter([(string) ($block['sector_name'] ?? ''), (string) ($block['service_name'] ?? '')]))) ?>
+                                                · <?= Sanitizer::e(implode(' · ', $tags)) ?>
                                             </span>
                                         <?php endif; ?>
                                     </p>

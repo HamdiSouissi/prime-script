@@ -103,6 +103,8 @@ final class CallSession
             'sector_name' => $sector['name'] ?? '',
             'stage_name'  => $stage['name'] ?? '',
             'service_name'=> $service['name'] ?? '',
+            // Utilisée par la phrase de conclusion « je vous rappelle {quand} ».
+            'callback_label' => (string) ($ctx['callback_label'] ?? ''),
         ];
     }
 
@@ -120,6 +122,7 @@ final class CallSession
             'sector_name'       => (string) ($context['sector_name'] ?? ''),
             'commercial_name'   => (string) ($commercialFirstName ?? ''),
             'service_name'      => (string) ($context['service_name'] ?? ''),
+            'quand'             => (string) ($context['callback_label'] ?? ''),
         ]);
     }
 }

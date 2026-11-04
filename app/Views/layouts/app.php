@@ -48,7 +48,7 @@ $themeLabel = 'Mode sombre';
 <a class="skip-link" href="#contenu">Aller au contenu principal</a>
 
 <header class="app-header">
-    <div class="app-header__bar">
+        <div class="app-header__bar">
         <a class="brand" href="<?= Sanitizer::e(View::url(Auth::isAdmin() && $isAdminArea ? '/admin' : '/')) ?>" aria-label="Prime Script — accueil">
             <img class="brand__logo" src="<?= Sanitizer::e(View::url('assets/img/logo-full.png')) ?>" alt="Prime Vision Solutions" width="166" height="52">
             <span class="brand__tag">Script</span>
@@ -75,6 +75,9 @@ $themeLabel = 'Mode sombre';
                 </a>
                 <a class="app-nav__link<?= View::active('/historique') ?>" href="<?= Sanitizer::e(View::url('/historique')) ?>">
                     <?= Icon::svg('clock') ?><span>Mes appels</span>
+                </a>
+                <a class="app-nav__link<?= View::active('/guide') ?>" href="<?= Sanitizer::e(View::url('/guide')) ?>">
+                    <?= Icon::svg('book') ?><span>Bien démarrer</span>
                 </a>
             <?php endif; ?>
         </nav>
@@ -166,6 +169,25 @@ $themeLabel = 'Mode sombre';
         </span>
     </div>
 </footer>
+
+<?php if ($user): ?>
+<nav class="tabbar no-print" aria-label="Navigation rapide">
+    <a class="tabbar__item<?= View::active('/', true) ?>" href="<?= Sanitizer::e(View::url('/')) ?>">
+        <?= Icon::svg('phone') ?><span>Appel</span>
+    </a>
+    <a class="tabbar__item<?= View::active('/historique') ?>" href="<?= Sanitizer::e(View::url('/historique')) ?>">
+        <?= Icon::svg('clock') ?><span>Mes appels</span>
+    </a>
+    <a class="tabbar__item<?= View::active('/guide') ?>" href="<?= Sanitizer::e(View::url('/guide')) ?>">
+        <?= Icon::svg('book') ?><span>Guide</span>
+    </a>
+    <?php if ($user['role'] === 'admin'): ?>
+        <a class="tabbar__item<?= View::active('/admin', true) ?>" href="<?= Sanitizer::e(View::url('/admin')) ?>">
+            <?= Icon::svg('grid') ?><span>Admin</span>
+        </a>
+    <?php endif; ?>
+</nav>
+<?php endif; ?>
 
 <script src="<?= Sanitizer::e(View::url('assets/js/app.js')) ?>" defer></script>
 </body>

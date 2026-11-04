@@ -29,6 +29,29 @@ final class Call extends Model
         return array_keys(self::results());
     }
 
+    /** Vrai si cet appel porte une demande de ne plus être rappelé. */
+    public static function isDoNotCall(array $call): bool
+    {
+        return (int) ($call['do_not_call'] ?? 0) === 1 || ($call['result'] ?? '') === 'ne_plus_rappeler';
+    }
+
+    /**
+     * Un prospect a-t-il déjà demandé à ne plus être rappelé ?
+     * Recherche sur le nom d'entreprise (insensible à la casse).
+     */
+    public static function hasOptOut(string $entreprise): bool
+    {
+        $name = trim($entreprise);
+        if ($name === '') {
+            return false;
+        }
+        return (int) Db::value(
+            'SELECT COUNT(*) FROM calls WHERE do_not_call = 1 AND LOWER(entreprise_client) = LOWER(?)',
+            [$name],
+            0
+        ) > 0;
+    }
+
     /** Libellé d'un résultat. */
     public static function resultLabel(?string $key): string
     {
@@ -58,6 +81,8 @@ final class Call extends Model
             'result'            => (string) $data['result'],
             'note'              => (string) ($data['note'] ?? ''),
             'callback_date'     => $data['callback_date'] ?: null,
+            // Une demande d'opposition reste enregistrée même si le résultat change plus tard.
+            'do_not_call'       => (int) ($data['do_not_call'] ?? 0),
         ]);
     }
 
@@ -211,6 +236,7 @@ final class Call extends Model
              JOIN users u ON u.id = c.user_id
              WHERE c.callback_date IS NOT NULL
                AND c.callback_date <= DATE_ADD(CURDATE(), INTERVAL 1 DAY)
+               AND c.do_not_call = 0
                AND c.result IN ('rappeler', 'devis')
                $userWhere
              ORDER BY c.callback_date ASC, c.id DESC

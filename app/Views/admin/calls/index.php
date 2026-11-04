@@ -141,6 +141,11 @@ $queryBase = array_filter([
                                 <span class="badge badge--<?= Sanitizer::e(Call::resultTone((string) $call['result'])) ?>">
                                     <?= Sanitizer::e(Call::resultLabel((string) $call['result'])) ?>
                                 </span>
+                                <?php if (Call::isDoNotCall($call)): ?>
+                                    <span class="badge badge--danger" title="Le prospect a demandé à ne plus être rappelé">
+                                        <?= Icon::svg('phone-off', '', 12) ?> Ne pas rappeler
+                                    </span>
+                                <?php endif; ?>
                             </td>
                             <td class="text-sm text-muted" style="max-width:18rem"><?= Sanitizer::e((string) $call['note']) ?></td>
                             <td class="is-nowrap text-sm">

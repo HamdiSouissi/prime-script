@@ -20,15 +20,72 @@ final class SpeechRenderer
     {
         $html = $content;
 
-        // Contenu saisi en texte brut (pas de balise) : on transforme les lignes en puces/paragraphes.
-        if (!preg_match('/<(p|ul|li|strong|br)\b/i', $html)) {
+        // Contenu saisi en texte brut (aucun bloc HTML) : on transforme les lignes
+        // en puces et paragraphes. Un simple <br> ou <strong> ne suffit pas à
+        // considérer le texte comme déjà structuré : sinon les « - » resteraient
+        // des tirets à l'écran.
+        if (!preg_match('/<(p|ul|ol|li)\b/i', $html)) {
             $html = Sanitizer::plainToRich($html);
+        } else {
+            // Contenu mixte (paragraphes HTML + lignes « - ») : les tirets
+            // deviennent de vraies puces au lieu de rester des tirets.
+            $html = self::dashLinesToHtml($html);
         }
 
         $html = self::replaceVariables($html, $variables);
         $html = Sanitizer::richText($html, 20000);
 
         return trim(self::frenchTypo($html));
+    }
+
+    /**
+     * Convertit les lignes commençant par « - », « * » ou « • » en liste à puces,
+     * même quand le contenu contient déjà des paragraphes HTML.
+     *
+     * Utile pour les contenus rédigés vite dans l'admin ou importés depuis des
+     * scripts : le commercial ne doit jamais voir un tiret en début de ligne.
+     */
+    public static function dashLinesToHtml(string $html): string
+    {
+        if (!preg_match('/^[ \t]*[-*•][ \t]+\S/mu', $html)) {
+            return $html;
+        }
+        // Une liste déjà balisée n'est pas retouchée.
+        if (preg_match('/<ul\b/i', $html)) {
+            return $html;
+        }
+
+        $out = [];
+        $inList = false;
+        foreach (preg_split('/\R/u', $html) ?: [] as $line) {
+            $line = trim($line);
+            if ($line === '') {
+                if ($inList) {
+                    $out[] = '</ul>';
+                    $inList = false;
+                }
+                continue;
+            }
+            if (preg_match('/^[-*•][ \t]*(.+)$/u', $line, $m)) {
+                if (!$inList) {
+                    $out[] = '<ul>';
+                    $inList = true;
+                }
+                $out[] = '<li>' . $m[1] . '</li>';
+                continue;
+            }
+            if ($inList) {
+                $out[] = '</ul>';
+                $inList = false;
+            }
+            $out[] = preg_match('/^<(p|ul|ol|li|h4|h5|em|strong)\b/i', $line)
+                ? $line
+                : '<p>' . $line . '</p>';
+        }
+        if ($inList) {
+            $out[] = '</ul>';
+        }
+        return implode("\n", $out);
     }
 
     /**
@@ -70,21 +127,47 @@ final class SpeechRenderer
             $html
         ) ?? $html;
 
-        // 1) Un groupe entre parenthèses entièrement vide disparaît : « ( ) » → rien.
-        $html = preg_replace('/\s*\(\s*(?:' . $marker . '\s*)*\)/u', '', $html) ?? $html;
-        // 2) Une énumération orpheline disparaît : « et {vide} », « ou {vide} ».
-        $html = preg_replace('/\s+(?:et|ou|puis)\s+' . $marker . '/iu', '', $html) ?? $html;
+        // 1) Les groupes vides construits pour les cas facultatifs disparaissent :
+        //    « (chez {entreprise_client}) », « (avec {contact}) », « ({service}) »…
+        $html = preg_replace(
+            '/\s*[(\[][^()\[\].!?;]{0,24}?' . $marker . '[^()\[\]]{0,8}?[)\]]/u',
+            '',
+            $html
+        ) ?? $html;
+        // 2) Une énumération orpheline disparaît : « et {vide} », « ou {vide} », « avec {vide} ».
+        $html = preg_replace('/\s+(?:et|ou|puis|avec|pour)\s+' . $marker . '/iu', '', $html) ?? $html;
         $html = preg_replace('/' . $marker . '\s+(?:et|ou|puis)\s+/iu', '', $html) ?? $html;
         // 3) Le reste : la marque est simplement retirée.
         $html = str_replace($marker, '', $html);
 
-        // 4) Nettoyage final de la ponctuation et des espaces laissés par les suppressions.
+        // 4) Un nom absent ne laisse pas de ponctuation orpheline derrière lui :
+        //    « Bonjour {contact}, » → « Bonjour, » ; « {contact}, deux minutes ? » → « Deux minutes ? »
+        $html = preg_replace('/(^|>)\s*' . $marker . '\s*,\s*/u', '$1', $html) ?? $html;
+        $html = preg_replace('/(?<![^>])[ \t]*,?\s*' . $marker . '\s*,\s*/u', ', ', $html) ?? $html;
+        $html = preg_replace('/(^|>)\s*' . $marker . '\s*([.!?])/u', '$1', $html) ?? $html;
+
+        // 5) Ponctuation restée orpheline en début de phrase ou entre deux signes :
+        //    « Bonjour, , deux minutes » ; « au sujet de . » ; « de Prime Vision., deux ».
+        $html = preg_replace('/[ \t]*[,;:]\s*([.!?])/u', '$1', $html) ?? $html;
+        $html = preg_replace('/\.\s*,/u', '.', $html) ?? $html;
+        $html = preg_replace('/>\s*,/u', '>', $html) ?? $html;
+        $html = preg_replace('/(^|>)\s*[,;:]\s*/u', '$1', $html) ?? $html;
+        $html = preg_replace('/\s+([,.;:!?])/u', '$1', $html) ?? $html;
+
+        // 6) Nettoyage final des espaces laissés par les suppressions.
         for ($i = 0; $i < 2; $i++) {
             $html = preg_replace('/[ \t]{2,}/u', ' ', $html) ?? $html;
             $html = preg_replace('/\s+([,.;:!?])/u', '$1', $html) ?? $html;
             $html = preg_replace('/([,;:])\s*\1/u', '$1', $html) ?? $html;
             $html = preg_replace('/\s+([^\s<>]*>)/u', ' $1', $html) ?? $html;
         }
+
+        // 7) Une phrase qui commence par une minuscule après suppression prend une majuscule.
+        //    Deux passes distinctes : le début d'un nœud de texte (après une balise)
+        //    et le début d'une phrase à l'intérieur d'un même nœud.
+        $upper = static fn (array $m): string => $m[1] . $m[2] . mb_strtoupper($m[3], 'UTF-8');
+        $html = preg_replace_callback('/(^|>)(\s*)([a-zàâäéèêëîïôöùûüç])/u', $upper, $html) ?? $html;
+        $html = preg_replace_callback('/([.!?]\s+)(\s*)([a-zàâäéèêëîïôöùûüç])/u', $upper, $html) ?? $html;
 
         return trim($html);
     }
@@ -102,6 +185,7 @@ final class SpeechRenderer
             'secteur'           => "Secteur d'activité sélectionné (ex. Architectes).",
             'prenom_commercial' => 'Prénom du commercial connecté.',
             'service'           => 'Service en cours de présentation (ex. Site web).',
+            'quand'             => 'Date ou moment convenu (ex. jeudi 14 h). Vide pendant un premier appel.',
         ];
     }
 
@@ -119,6 +203,7 @@ final class SpeechRenderer
             'secteur'           => (string) ($context['sector_name'] ?? ''),
             'prenom_commercial' => (string) ($context['commercial_name'] ?? ''),
             'service'           => (string) ($context['service_name'] ?? ''),
+            'quand'             => (string) ($context['quand'] ?? ''),
         ];
     }
 

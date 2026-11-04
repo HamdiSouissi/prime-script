@@ -205,6 +205,68 @@
     });
   }
 
+  /* ------------------------------------------------------------------ Phrases de conclusion */
+  /* Affiche la phrase correspondant au résultat choisi sur l'écran de fin d'appel. */
+  function initConclusionScripts() {
+    var card = $('[data-conclusion-card]');
+    if (!card) {
+      return;
+    }
+    var scripts = $$('[data-conclusion]', card);
+    var hint = $('[data-conclusion-hint]', card);
+    var dateInput = $('[data-callback-date]');
+
+    // Remplit « je vous rappelle {quand} » avec la date choisie juste au-dessus.
+    function callbackLabel() {
+      if (!dateInput || !dateInput.value) {
+        return 'la semaine prochaine';
+      }
+      var parts = dateInput.value.split('-');
+      if (parts.length !== 3) {
+        return 'la semaine prochaine';
+      }
+      var date = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+      var days = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+      return days[date.getDay()] + ' ' + date.getDate();
+    }
+
+    function sync(value) {
+      var shown = 0;
+      scripts.forEach(function (script) {
+        var match = script.getAttribute('data-conclusion') === value;
+        script.hidden = !match;
+        if (match) {
+          shown++;
+          if (script.getAttribute('data-conclusion-key') === 'rappeler' && dateInput && dateInput.value) {
+            // La phrase est écrite avec « la semaine prochaine » : dès qu'une date est
+            // choisie au-dessus, on la remplace par le jour réel.
+            script.innerHTML = script.innerHTML.replace('la semaine prochaine', callbackLabel());
+          }
+        }
+      });
+      if (hint) {
+        hint.textContent = shown ? 'Phrase à dire' : "S'affiche selon le résultat choisi";
+      }
+    }
+
+    var current = '';
+    $$('input[name="result"]').forEach(function (input) {
+      input.addEventListener('change', function () {
+        current = input.value;
+        sync(current);
+      });
+      if (input.checked) {
+        current = input.value;
+      }
+    });
+    if (dateInput) {
+      dateInput.addEventListener('change', function () {
+        sync(current);
+      });
+    }
+    sync(current);
+  }
+
   /* ------------------------------------------------------------------ Volet Objections */
   function initDrawer() {
     var drawer = $('[data-drawer]');
@@ -665,6 +727,7 @@
     initUserMenu();
     initAccordions();
     initChoices();
+    initConclusionScripts();
     initDrawer();
     initPreview();
     initEditor();

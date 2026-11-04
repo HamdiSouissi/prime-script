@@ -65,6 +65,8 @@ return [
             'rappeler'   => ['label' => 'À rappeler',        'tone' => 'warn'],
             'pas_interesse' => ['label' => 'Pas intéressé',  'tone' => 'muted'],
             'injoignable'=> ['label' => 'Injoignable',       'tone' => 'danger'],
+            // Opposition au démarchage : le prospect a demandé à ne plus être rappelé.
+            'ne_plus_rappeler' => ['label' => 'Ne plus rappeler', 'tone' => 'danger'],
         ],
     ],
 ];

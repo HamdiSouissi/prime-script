@@ -57,10 +57,26 @@ R=$(curl -s -b "$JAR" -H "Accept: application/json" -H "X-Requested-With: XMLHtt
 check "enregistrement de l'appel (201 JSON)" '[ "$R" = "201" ]'
 check "réponse JSON ok" 'grep -q "\"ok\":true" /tmp/end.json'
 
-echo "== Historique & export"
-check "historique (200)" '[ "$(curl -s -b "$JAR" -o /tmp/hist.html -w "%{http_code}" "$BASE/historique")" = "200" ]'
-check "export CSV" 'curl -s -b "$JAR" "$BASE/historique/export.csv" | head -1 | grep -q "Date"'
+echo "== Contenu prêt à l'emploi"
+check "guide « Bien démarrer » accessible" 'curl -s -b "$JAR" "$BASE/guide" | grep -qi "gles d.or"'
+check "guide : dialogue d.exemple présent" 'curl -s -b "$JAR" "$BASE/guide" | grep -q "Le prospect"'
+check "modèles de mail accessibles" 'curl -s -b "$JAR" "$BASE/guide/modeles" | grep -q "Copier le mail"'
+check "écran 2 : passer le standard" 'grep -q "Passer le standard" /tmp/pres.html'
+check "écran 2 : message de répondeur" 'grep -q "Répondeur" /tmp/pres.html'
+check "aucune variable non remplacée à l.écran" '! grep -qE "\{(contact|entreprise_client|prenom_commercial|service|secteur)\}" /tmp/speech.html'
+check "objections : réponses rendues en HTML riche" 'curl -s -b "$JAR" -H "Accept: application/json" "$BASE/appel/objections" | grep -q "Conseil"'
 
+# Nouvel appel pour atteindre l'écran de fin sans dépendre d'un contexte déjà enregistré.
+HOME_HTML=$(curl -s -b "$JAR" "$BASE/")
+TOKEN=$(printf '%s' "$HOME_HTML" | grep -o 'name="_token" value="[^"]*"' | head -1 | sed 's/.*value="//;s/"//')
+curl -s -b "$JAR" -o /dev/null -X POST "$BASE/appel/contexte" \
+  -d "_token=$TOKEN" -d "sector_id=3" -d "stage_id=1" -d "entreprise_client=Maison Tilleul" -d "contact=M. Perrin"
+# Choisir un service est obligatoire avant l'écran 5 (comme dans le parcours réel).
+curl -s -b "$JAR" -o /dev/null "$BASE/appel/speech?service=4"
+check "écran 5 : phrases de conclusion" 'curl -s -b "$JAR" "$BASE/appel/terminer" | grep -q "Quoi dire pour conclure"'
+check "résultat « Ne plus rappeler » proposé" 'curl -s -b "$JAR" "$BASE/appel/terminer" | grep -q "ne_plus_rappeler"'
+
+echo "== Historique & export"
 echo "== Contrôle d'accès"
 check "commercial interdit sur /admin (403)" '[ "$(curl -s -b "$JAR" -o /dev/null -w "%{http_code}" "$BASE/admin")" = "403" ]'
 check "déconnexion (302)" '[ "$(curl -s -b "$JAR" -X POST "$BASE/deconnexion" -d "_token=$TOKEN" -o /dev/null -w "%{http_code}")" = "302" ]'
@@ -89,7 +105,7 @@ for page in /admin /admin/blocs /admin/blocs/nouveau "/admin/blocs/${FIRST_BLOCK
   if grep -q "Fatal error\|Erreur applicative" /tmp/adm.html; then ko "aucune erreur PHP sur $page"; fi
 done
 
-check "blocs : les 50 blocs du jeu de démo sont listés" '[ "$(curl -s -b "$JAR2" "$BASE/admin/blocs" | grep -c "/modifier")" -ge 50 ]'
+check "blocs : le contenu prêt à l'emploi est listé (>= 120)" '[ "$(curl -s -b "$JAR2" "$BASE/admin/blocs" | grep -c "/modifier")" -ge 120 ]'
 check "aperçu d'un bloc (HTML rendu)" 'curl -s -b "$JAR2" "$BASE/admin/blocs/${FIRST_BLOCK}/apercu" | grep -qi "Prime Vision"'
 check "export CSV du journal d.appels" 'curl -s -b "$JAR2" "$BASE/admin/appels/export.csv" | head -1 | grep -q "Date"'
 

@@ -66,6 +66,14 @@ final class CallController extends Controller
             'contact'           => $contact,
         ]);
 
+        // Conformité : une opposition déjà enregistrée est rappelée avant de commencer.
+        if (Call::hasOptOut($entreprise)) {
+            Session::flash('warn', sprintf(
+                '%s a demandé à ne plus être rappelé(e). N\'appelez pas ce prospect : l\'opposition figure dans le journal.',
+                $entreprise
+            ));
+        }
+
         $this->redirect('/appel/presentation');
     }
 
@@ -76,7 +84,7 @@ final class CallController extends Controller
         $variables = $this->variables($context);
 
         $blocks = SpeechBlock::forContext(
-            ['presentation', 'accroche'],
+            ['presentation', 'accroche', 'barrage', 'repondeur'],
             (int) $context['sector_id'],
             (int) $context['stage_id'],
             null
@@ -84,12 +92,16 @@ final class CallController extends Controller
 
         $presentations = $this->prepare($blocks['presentation'] ?? [], $variables);
         $hooks = $this->prepare($blocks['accroche'] ?? [], $variables);
+        $gatekeepers = $this->prepare($blocks['barrage'] ?? [], $variables);
+        $voicemails = $this->prepare($blocks['repondeur'] ?? [], $variables);
 
         $this->view('call/presentation', [
             'title'         => 'Présentation & accroches',
             'context'       => $context,
             'presentations' => $presentations,
             'hooks'         => $hooks,
+            'gatekeepers'   => $gatekeepers,
+            'voicemails'    => $voicemails,
             'objections'    => $this->objectionsFor($context),
             'step'          => 2,
         ]);
@@ -141,7 +153,9 @@ final class CallController extends Controller
             $sections[$type] = $this->prepare($selection[$type] ?? [], $variables);
         }
 
-        $objections = Objection::forContext((int) $context['sector_id'], $serviceId);
+        // Les réponses passent par le même rendu que les blocs : variables remplacées
+        // ({contact}, {entreprise_client}…) et HTML assaini.
+        $objections = $this->objectionsFor($context);
 
         $callService = Service::find($serviceId);
 
@@ -188,15 +202,22 @@ final class CallController extends Controller
             $this->redirect('/appel/services');
         }
 
+        // Phrases de conclusion : une par résultat possible, pour ne pas chercher ses mots
+        // au moment de raccrocher. Elles vivent dans les blocs « conclusion ».
+        $variables = $this->variables($context);
+        $conclusions = $this->prepare(SpeechBlock::byType('conclusion', true), $variables);
+        $conclusions = $this->withResultCode($conclusions);
+
         $this->view('call/end', [
-            'title'      => 'Fin d\'appel',
-            'context'    => $context,
-            'results'    => Call::results(),
-            'services'   => Service::active(),
-            'objections' => $this->objectionsFor($context),
-            'step'       => 5,
-            'errors'     => $this->takeErrors(),
-            'old'        => $this->takeOld(),
+            'title'       => 'Fin d\'appel',
+            'context'     => $context,
+            'results'     => Call::results(),
+            'services'    => Service::active(),
+            'objections'  => $this->objectionsFor($context),
+            'conclusions' => $conclusions,
+            'step'        => 5,
+            'errors'      => $this->takeErrors(),
+            'old'         => $this->takeOld(),
         ]);
     }
 
@@ -238,6 +259,9 @@ final class CallController extends Controller
             $this->redirect('/appel/terminer');
         }
 
+        // « Ne plus rappeler » : opposition enregistrée, aucun rappel proposé ensuite.
+        $doNotCall = $result === 'ne_plus_rappeler' ? 1 : 0;
+
         $callId = Call::record([
             'user_id'           => (int) Auth::user()['id'],
             'sector_id'         => (int) $context['sector_id'],
@@ -248,6 +272,7 @@ final class CallController extends Controller
             'result'            => $result,
             'note'              => $note,
             'callback_date'     => Sanitizer::date($callback),
+            'do_not_call'       => $doNotCall,
         ]);
 
         CallSession::clear();
@@ -257,6 +282,7 @@ final class CallController extends Controller
             'devis'         => 'Devis demandé : à préparer et à envoyer sous 48 h.',
             'rappeler'      => 'Rappel programmé. Il apparaîtra dans « Mes appels ».',
             'pas_interesse' => 'Appel enregistré. Aucun suivi nécessaire.',
+            'ne_plus_rappeler' => 'Opposition enregistrée : cette entreprise ne sera plus rappelée.',
             default         => 'Appel enregistré.',
         };
         Session::flash('success', $message);
@@ -346,6 +372,50 @@ final class CallController extends Controller
     }
 
     /**
+     * Ajoute à chaque phrase de conclusion la clé du résultat qu'elle illustre.
+     * Le rattachement se fait sur le titre (le bloc n'a pas de champ dédié) :
+     * « Rendez-vous pris » → rdv, « Devis demandé » → devis, etc.
+     *
+     * @param array<int, array<string, mixed>> $blocks
+     * @return array<int, array<string, mixed>>
+     */
+    private function withResultCode(array $blocks): array
+    {
+        // Le code enregistré fait foi (il est stable et sans accent).
+        // Le repli sur le titre sert aux blocs saisis à la main dans l'admin :
+        // on retire alors les accents et on teste le libellé le plus long d'abord
+        // (« ne plus rappeler » avant « rappeler »).
+        $map = [
+            'ne plus rappeler' => 'ne_plus_rappeler',
+            'rendez-vous'      => 'rdv',
+            'devis'            => 'devis',
+            'rappeler'         => 'rappeler',
+            'pas interesse'    => 'pas_interesse',
+            'injoignable'      => 'injoignable',
+        ];
+        foreach ($blocks as &$block) {
+            $code = (string) ($block['code'] ?? '');
+            if (str_starts_with($code, 'fin-')) {
+                continue;
+            }
+            $title = str_replace(
+                ['à', 'â', 'ä', 'é', 'è', 'ê', 'ë', 'î', 'ï', 'ô', 'ö', 'ù', 'û', 'ü', 'ç'],
+                ['a', 'a', 'a', 'e', 'e', 'e', 'e', 'i', 'i', 'o', 'o', 'u', 'u', 'u', 'c'],
+                mb_strtolower((string) ($block['title'] ?? ''))
+            );
+            $block['code'] = '';
+            foreach ($map as $needle => $key) {
+                if (str_contains($title, $needle)) {
+                    $block['code'] = 'fin-' . $key;
+                    break;
+                }
+            }
+        }
+        unset($block);
+        return $blocks;
+    }
+
+    /**
      * Prépare les blocs pour l'affichage : variables remplacées, HTML assaini, puces extraites.
      *
      * @param array<int, array<string, mixed>> $blocks
@@ -358,7 +428,9 @@ final class CallController extends Controller
             $rendered = SpeechRenderer::render((string) $block['content'], $variables);
             $block['html'] = $rendered;
             $block['bullets'] = SpeechRenderer::toBullets($rendered);
-            $block['type_label'] = SpeechBlock::typeLabel((string) $block['type']);
+            $block['type_label'] = SpeechBlock::typeLabelFor((string) $block['type'], $block);
+            // Bloc générique (sans secteur) : signalé dans les listes pour guider le choix.
+            $block['_generic'] = ($block['sector_id'] ?? null) === null;
             $block['icon'] = SpeechBlock::TYPE_ICONS[(string) $block['type']] ?? 'info';
         }
         unset($block);

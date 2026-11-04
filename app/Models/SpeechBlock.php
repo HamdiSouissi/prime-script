@@ -21,11 +21,14 @@ final class SpeechBlock extends Model
     public const TYPES = [
         'presentation' => 'Présentation',
         'accroche'     => 'Accroche',
+        'barrage'      => 'Passer le standard',
+        'repondeur'    => 'Message sur répondeur',
         'decouverte'   => 'Questions de découverte',
         'argumentaire' => 'Argumentaire',
         'preuve'       => 'Preuve / réalisation',
         'tarif'        => 'Tarif & prochaine étape',
         'appel_action' => 'Appel à l\'action',
+        'conclusion'   => 'Phrase de fin d\'appel',
         'objection'    => 'Réponse à objection',
     ];
 
@@ -36,11 +39,14 @@ final class SpeechBlock extends Model
     public const TYPE_ICONS = [
         'presentation' => 'sparkles',
         'accroche'     => 'bolt',
+        'barrage'      => 'key',
+        'repondeur'    => 'phone-off',
         'decouverte'   => 'search',
         'argumentaire' => 'target',
         'preuve'       => 'award',
         'tarif'        => 'tag',
         'appel_action' => 'flag',
+        'conclusion'   => 'check-circle',
         'objection'    => 'shield',
     ];
 
@@ -65,6 +71,17 @@ final class SpeechBlock extends Model
     public static function typeLabel(string $type): string
     {
         return self::TYPES[$type] ?? ucfirst($type);
+    }
+
+    /**
+     * Libellé d'un type complété par l'étape quand le bloc est réservé à une étape.
+     * Exemple : « Accroche · Relance ».
+     */
+    public static function typeLabelFor(string $type, array $block = []): string
+    {
+        $label = self::typeLabel($type);
+        $stage = trim((string) ($block['stage_name'] ?? ''));
+        return $stage !== '' ? $label . ' · ' . $stage : $label;
     }
 
     /**

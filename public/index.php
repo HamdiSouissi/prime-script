@@ -35,6 +35,10 @@ $router->post('/appel/nouveau', 'CallController@reset', ['auth']);             /
 $router->get('/historique', 'HistoryController@index', ['auth']);               // mes appels
 $router->get('/historique/export.csv', 'HistoryController@export', ['auth']);
 
+// ------------------------------------------------------------------ Guide « Bien démarrer »
+$router->get('/guide', 'GuideController@index', ['auth']);                       // méthode, dialogue, glossaire
+$router->get('/guide/modeles', 'GuideController@templates', ['auth']);           // modèles de mail prêts à copier
+
 // ------------------------------------------------------------------ Administration
 $router->get('/admin', 'Admin\DashboardController@index', ['admin']);
 
@@ -51,6 +55,7 @@ $router->post('/admin/blocs/{id}/supprimer', 'Admin\BlockController@destroy', ['
 $router->get('/admin/blocs/{id}/apercu', 'Admin\BlockController@preview', ['admin']);
 $router->get('/admin/blocs/{id}/historique', 'Admin\BlockController@versions', ['admin']);
 $router->post('/admin/blocs/{id}/restaurer', 'Admin\BlockController@restore', ['admin']);
+$router->post('/admin/contenu/restaurer', 'Admin\BlockController@restoreContent', ['admin']);
 
 // Objections
 $router->get('/admin/objections', 'Admin\ObjectionController@index', ['admin']);

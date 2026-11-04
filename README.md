@@ -66,18 +66,50 @@ FLUSH PRIVILEGES;
 EXIT;
 ```
 
-### 3.3 Importer le schéma puis les données de démonstration
+### 3.3 Importer le schéma, les comptes puis le contenu
+
+Trois fichiers, dans cet ordre :
 
 ```bash
-mysql -u prime_script -p prime_script < database/schema.sql
-mysql -u prime_script -p prime_script < database/seed.sql
+mysql -u prime_script -p prime_script < database/schema.sql     # structure
+mysql -u prime_script -p prime_script < database/seed.sql       # comptes, secteurs, étapes, services
+mysql -u prime_script -p prime_script < database/content.sql    # contenu prêt à l'emploi (167 textes)
 ```
 
-`seed.sql` installe 3 comptes, 4 secteurs, 3 étapes, 4 services, 50 blocs de discours,
-15 objections et 20 appels de démonstration (utiles pour visualiser le tableau de bord).
+| Fichier | Contenu |
+|---------|---------|
+| `schema.sql` | Tables, index, contraintes. Aucune donnée. |
+| `seed.sql` | 3 comptes, 4 secteurs, 3 étapes, 4 services et 20 appels de démonstration (pour visualiser le journal). Commence par des `TRUNCATE` : à jouer **une seule fois**, sur une base vide. |
+| `content.sql` | Le script d'appel complet : 123 blocs et 44 objections. `INSERT … ON DUPLICATE KEY UPDATE` sur une colonne `code` : réexécutable sans créer de doublon. |
 
-> En production, vous pouvez importer `schema.sql` seul, créer le premier administrateur
-> avec le script SQL fourni en fin de `seed.sql`, puis supprimer les données de démonstration.
+`content.sql` ne touche jamais aux comptes ni au journal d'appels. Vous pouvez donc le
+rejouer après une mise à jour du contenu pour récupérer les textes d'origine.
+
+> En production, si vous ne voulez pas des 20 appels de démonstration, importez
+> `schema.sql` puis `content.sql`, puis créez le premier administrateur avec le script SQL
+> fourni en fin de `seed.sql`.
+
+### 3.3 bis  (alternative) Rejouer l'import depuis l'application
+
+L'application sait faire le même import toute seule, sans accès `mysql` :
+
+```bash
+php tools/import-content.php --dry-run   # contrôle les fichiers, n'écrit rien
+php tools/import-content.php             # importe ou met à jour le contenu
+php tools/import-content.php --purge     # retire le contenu livré (code non vide)
+```
+
+L'import lit `database/content/*.sql` (un enregistrement JSON par ligne : lisible,
+versionnable, modifiable sans toucher au code). Chaque bloc mis à jour archive sa version
+précédente dans l'historique. En administration, le même import est disponible en un clic :
+**Contenus → Blocs de speech → « Restaurer le contenu d'origine »**.
+
+Deux contrôles utiles après une modification du contenu :
+
+```bash
+php tools/content-check.php   # les 48 combinaisons secteur × service × étape affichent-elles tout ?
+php tools/content-audit.php   # expressions à éviter, doublons, longueur à l'oral, variables
+```
 
 ### 3.4 Configurer l'application
 
@@ -192,18 +224,22 @@ prime-script/
 │   │   ├── AuthController.php      connexion / déconnexion
 │   │   ├── HomeController.php      écran 1 — Nouvel appel
 │   │   ├── CallController.php      écrans 2 à 5 + objections
+│   │   ├── GuideController.php     « Bien démarrer » + modèles de mails
 │   │   ├── HistoryController.php   mes appels + export CSV
 │   │   ├── ProfileController.php   mon compte / mot de passe
 │   │   └── Admin/                  tableau de bord, blocs, objections, taxonomies,
 │   │                               utilisateurs, journal d'appels
+│   ├── Content/                Guide.php et Templates.php : textes de « Bien démarrer »
 │   ├── Models/                 une classe par table + Stats (agrégats SQL)
 │   ├── Services/
 │   │   ├── CallSession.php     contexte de l'appel en session
+│   │   ├── ContentImporter.php import rejouable du contenu livré
 │   │   └── SpeechRenderer.php  variables {…}, puces, assainissement du rendu
 │   └── Views/
 │       ├── layouts/            app.php (connecté), auth.php (connexion)
 │       ├── partials/           stepper, call-context, objections-drawer, admin-subnav
 │       ├── call/               start, presentation, services, speech, end, saved, objections
+│       ├── guide/              index (Bien démarrer), templates (mails de suivi)
 │       ├── admin/              dashboard, blocks/, objections/, taxonomy/, users/, calls/
 │       ├── auth/login.php  ·  history/  ·  profile/  ·  errors/{403,404,500}
 ├── config/
@@ -211,7 +247,10 @@ prime-script/
 │   └── config.php              vos identifiants (ignoré par Git)
 ├── database/
 │   ├── schema.sql              9 tables, clés étrangères, index, utf8mb4
-│   └── seed.sql                données de démonstration complètes
+│   ├── seed.sql                comptes, secteurs, étapes, services, appels de démo
+│   ├── content.sql             contenu prêt à l'emploi (généré, réexécutable)
+│   ├── content/                source du contenu : 00-structure + 11 fichiers JSON
+│   └── migrations/             migration pour une base déjà installée
 ├── storage/                    logs, cache — inaccessibles depuis le web
 ├── tools/                      scripts de développement (non publics)
 └── README.md
@@ -229,16 +268,46 @@ prime-script/
 | `sectors` | 4 secteurs | `name`, `icon`, `description`, `position`, `is_active` |
 | `stages` | 3 étapes | idem |
 | `services` | 4 services vendus | `description`, `icon`, `price_from` (tarif dès X € HT : site 790 €, application 2 900 €, automatisation et chatbot 990 €) |
-| `speech_blocks` | discours modulaires | `type` ∈ présentation, accroche, découverte, argumentaire, preuve, tarif, appel_action, objection ; liens **optionnels** secteur / étape / service |
+| `speech_blocks` | discours modulaires | `type` ∈ présentation, accroche, barrage, repondeur, découverte, argumentaire, preuve, tarif, appel_action, conclusion, objection ; `code` (unique, import rejouable) ; liens **optionnels** secteur / étape / service |
 | `speech_block_versions` | historique | instantané avant chaque modification, `change_note`, restauration en un clic |
-| `objections` | objections fréquentes | question + réponse courte, secteur / service optionnels |
-| `calls` | journal d'appels | commercial, secteur, étape, service, résultat, note, `callback_date` |
+| `objections` | objections fréquentes | question + réponse courte, `code` (unique), secteur / service optionnels |
+| `calls` | journal d'appels | commercial, secteur, étape, service, résultat (`rdv`, `devis`, `rappeler`, `pas_interesse`, `injoignable`, `ne_plus_rappeler`), note, `callback_date`, `do_not_call` |
 | `login_attempts` | anti-force brute | e-mail haché + IP, index unique, purge automatique |
 
 **Règle de sélection des blocs** : un bloc est retenu s'il est actif et si son secteur / étape / service
 correspond au contexte **ou** est vide. Les blocs les plus spécifiques passent devant, les génériques
 complètent, le tout trié par `position`. Une phrase de présentation générique apparaît donc
 même quand un secteur dispose de ses propres accroches.
+
+### Le contenu prêt à l'emploi
+
+Le script livré se trouve dans `database/content/`, un fichier par famille de textes :
+
+| Fichier | Contenu | Volume |
+|---------|---------|--------|
+| `01-presentations.sql` | présentation par secteur × étape (20 à 30 s) | 12 |
+| `02-accroches-generiques.sql` | accroches toutes activités × étape | 12 |
+| `03-accroches-secteurs.sql` | 3 accroches par secteur × étape | 36 |
+| `04-barrage-et-repondeur.sql` | formules pour le standard, messages de répondeur | 8 |
+| `05-decouverte.sql` | questions de découverte + leur raison d'être (4 services, 4 secteurs, relance, closing) | 10 |
+| `06-argumentaires.sql` | 4 à 5 puces par service × secteur | 16 |
+| `07-preuves.sql` | éléments de preuve honnêtes, par service | 4 |
+| `08-tarifs.sql` | tarif de départ + passage à la suite, par service | 4 |
+| `09-appels-a-l-action.sql` | appel à l'action par service × étape | 15 |
+| `10-conclusions.sql` | quoi dire pour chaque résultat d'appel | 6 |
+| `11-objections.sql` | 44 objections en quatre temps, dont la réponse « ne plus être rappelé » | 44 |
+
+Les objections sont réparties en 18 générales, 22 liées à un service et 4 à un secteur :
+chaque combinaison secteur × service en affiche entre 33 et 36.
+
+Chaque texte se termine par une ligne `Conseil : …` (affichée en italique) qui explique
+comment le dire. Les variables `{entreprise_client}`, `{contact}`, `{prenom_commercial}`,
+`{service}` et `{secteur}` sont remplacées ; une variable vide disparaît proprement
+(« Bonjour, de Prime Vision Solutions. » plutôt que « Bonjour , de… »).
+
+Pour modifier le contenu : éditez les fichiers puis `php tools/import-content.php`.
+Pour modifier un texte depuis l'interface : **Contenus → Blocs de speech** (l'import
+ne réécrit jamais un texte identique, et archive la version précédente en cas de changement).
 
 ---
 
@@ -247,15 +316,25 @@ même quand un secteur dispose de ses propres accroches.
 1. **Démarrer** : connectez-vous, l'écran **Nouvel appel** s'ouvre.
 2. **Contexte** : cliquez sur un secteur, une étape. Facultatif : entreprise et contact
    (ils remplacent `{entreprise_client}` et `{contact}` dans le discours). Puis **Commencer**.
-3. **Présentation** : lisez la présentation, puis choisissez une accroche. **Passer à la proposition**.
+3. **Présentation** : lisez la présentation, puis choisissez une accroche.
+   Deux boutons pour les cas courants : **Passer le standard** et **Répondeur** (message à laisser).
 4. **Service** : cliquez la carte du service à proposer (tarif indicatif affiché).
 5. **Speech** : déroulez chaque bloc dans l'ordre (découverte → argumentaire → preuve → tarif → action).
    Vous pouvez changer de service sans perdre le contexte.
-6. **Objection** : à tout moment, bouton **Objections** en bas à droite (ou touche `Échap`).
+6. **Objection** : à tout moment, bouton **Objections** en bas à droite (ou touche `O`).
    Cherchez l'objection, lisez la réponse courte, refermez.
-7. **Fin d'appel** : résultat, note en une phrase, date de rappel si besoin → **Enregistrer**.
+7. **Fin d'appel** : choisissez le résultat, la phrase de conclusion du résultat s'affiche.
+   Ajoutez une note en une phrase, une date de rappel si besoin → **Enregistrer**.
    Vous revenez à l'écran 1 pour l'appel suivant.
 8. **Mes appels** : votre historique et l'export CSV de vos appels.
+
+Si le prospect demande à **ne plus être rappelé** : dites la phrase prévue, choisissez le
+résultat « Ne plus rappeler ». L'appel est marqué dans le journal, l'entreprise est signalée
+« Ne pas rappeler » et l'application vous en avertit au prochain appel.
+
+**Bien démarrer** (menu principal → *Bien démarrer*) : les règles d'or, la structure d'un
+appel en cinq temps, les dix erreurs à éviter, un dialogue complet de deux minutes et un
+glossaire. Un second onglet donne trois **modèles de mails de suivi** à copier.
 
 Raccourcis : `←` / `→` pour naviguer entre les blocs, `Échap` pour fermer le panneau, `?` pour l'aide clavier.
 
@@ -266,7 +345,7 @@ Raccourcis : `←` / `→` pour naviguer entre les blocs, `Échap` pour fermer l
 | Section | Ce que vous pouvez faire |
 |---------|--------------------------|
 | **Tableau de bord** | appels du jour / semaine / mois, répartition des résultats, appels par commercial, services et secteurs les plus proposés, taux de rendez-vous et de devis |
-| **Blocs de discours** | filtrer (type, secteur, étape, service, actif, recherche), créer, modifier, dupliquer, réordonner, activer/désactiver, supprimer, **prévisualiser** |
+| **Blocs de discours** | filtrer (type, secteur, étape, service, actif, recherche), créer, modifier, dupliquer, réordonner, activer/désactiver, supprimer, **prévisualiser**, **restaurer le contenu d'origine** en un clic |
 | **Historique** (dans un bloc) | voir chaque version, son auteur, sa note de changement, **restaurer** |
 | **Objections** | ajouter / modifier une objection et sa réponse courte, la lier à un secteur ou un service |
 | **Secteurs / Étapes / Services** | créer, renommer, changer l'icône, le tarif, l'ordre, activer/désactiver |
@@ -279,7 +358,7 @@ Raccourcis : `←` / `→` pour naviguer entre les blocs, `Échap` pour fermer l
 2. Choisissez le type, le titre, rédigez le contenu :
    - `- texte` en début de ligne crée une puce ;
    - `**mot**` (ou `<strong>`) met en valeur une phrase clé ;
-   - `{entreprise_client}`, `{contact}`, `{secteur}`, `{prenom_commercial}`, `{service}` sont remplacés à l'appel.
+   - `{entreprise_client}`, `{contact}`, `{secteur}`, `{prenom_commercial}`, `{service}`, `{quand}` sont remplacés à l'appel.
      Une variable vide disparaît proprement (pas de parenthèse ni de virgule orpheline).
 3. Laissez **Secteur / Étape / Service** vides pour un bloc valable partout.
 4. **Aperçu** montre exactement le rendu commercial — y compris avec un exemple de contexte.

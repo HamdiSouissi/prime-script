@@ -10,6 +10,8 @@ use App\Core\View;
 $context = $context ?? [];
 $presentations = $presentations ?? [];
 $hooks = $hooks ?? [];
+$gatekeepers = $gatekeepers ?? [];
+$voicemails = $voicemails ?? [];
 ?>
 <?= App\Core\App::render('partials/stepper', ['step' => 2]) ?>
 <?= App\Core\App::render('partials/call-context', ['context' => $context]) ?>
@@ -71,9 +73,12 @@ $hooks = $hooks ?? [];
                     <div class="hook__head">
                         <span class="hook__num" aria-hidden="true"><?= $index + 1 ?></span>
                         <span class="badge badge--accent"><?= Sanitizer::e($hook['title'] !== '' ? $hook['title'] : 'Accroche ' . ($index + 1)) ?></span>
-                        <?php if (!empty($hook['sector_name']) || !empty($hook['stage_name'])): ?>
+                        <?php if (!empty($hook['stage_name'])): ?>
+                            <span class="badge badge--info"><?= Sanitizer::e((string) $hook['stage_name']) ?></span>
+                        <?php endif; ?>
+                        <?php if (!empty($hook['sector_name']) || !empty($hook['_generic'])): ?>
                             <span class="badge badge--muted" style="margin-left:auto">
-                                <?= Sanitizer::e(implode(' · ', array_filter([(string) ($hook['sector_name'] ?? ''), (string) ($hook['stage_name'] ?? '')]))) ?>
+                                <?= Sanitizer::e(!empty($hook['_generic']) ? 'Tous secteurs' : (string) $hook['sector_name']) ?>
                             </span>
                         <?php endif; ?>
                     </div>
@@ -83,6 +88,58 @@ $hooks = $hooks ?? [];
         </div>
     </section>
 </div>
+
+<?php if ($gatekeepers !== [] || $voicemails !== []): ?>
+<div class="pitch-layout mt-4">
+    <?php if ($gatekeepers !== []): ?>
+        <section class="card" aria-labelledby="barrage-title" data-open>
+            <div class="section-label" style="margin-bottom:var(--s-3)">
+                <h2 id="barrage-title"><?= Icon::svg('key', '', 16) ?> Passer le standard</h2>
+                <span class="section-label__hint"><?= count($gatekeepers) ?> formulation<?= count($gatekeepers) > 1 ? 's' : '' ?></span>
+            </div>
+            <p class="text-sm text-muted" style="margin-top:0">
+                Vous n'êtes pas encore avec le dirigeant : restez simple et honnête, on vous passe plus facilement.
+            </p>
+            <div class="stack stack--lg">
+                <?php foreach ($gatekeepers as $index => $line): ?>
+                    <article>
+                        <?php if ($line['title'] !== ''): ?>
+                            <p class="text-xs text-muted-2" style="text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-bottom:var(--s-2)">
+                                <?= Sanitizer::e(($index + 1) . '. ' . $line['title']) ?>
+                            </p>
+                        <?php endif; ?>
+                        <div class="rich"><?= $line['html'] ?></div>
+                    </article>
+                <?php endforeach; ?>
+            </div>
+        </section>
+    <?php endif; ?>
+
+    <?php if ($voicemails !== []): ?>
+        <section class="card" aria-labelledby="repondeur-title">
+            <div class="section-label" style="margin-bottom:var(--s-3)">
+                <h2 id="repondeur-title"><?= Icon::svg('phone-off', '', 16) ?> Répondeur</h2>
+                <span class="section-label__hint">20 secondes maximum</span>
+            </div>
+            <p class="text-sm text-muted" style="margin-top:0">
+                Parlez lentement, laissez votre numéro une seule fois, puis rappelez à un autre moment.
+            </p>
+            <div class="stack stack--lg">
+                <?php foreach ($voicemails as $index => $message): ?>
+                    <article>
+                        <?php if ($message['title'] !== ''): ?>
+                            <p class="text-xs text-muted-2" style="text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-bottom:var(--s-2)">
+                                <?= Sanitizer::e($message['title']) ?>
+                            </p>
+                        <?php endif; ?>
+                        <div class="rich"><?= $message['html'] ?></div>
+                    </article>
+                <?php endforeach; ?>
+            </div>
+        </section>
+    <?php endif; ?>
+</div>
+<?php endif; ?>
 
 <div class="card mt-4" style="display:flex;flex-wrap:wrap;gap:var(--s-3);align-items:center;justify-content:space-between">
     <a class="btn btn--ghost" href="<?= Sanitizer::e(View::url('/')) ?>">

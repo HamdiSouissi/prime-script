@@ -56,7 +56,7 @@ final class CallController extends AdminController
         if (fwrite($out, "\xEF\xBB\xBF") === false) {
             // Certains environnements tests n'autorisent pas l'écriture : on continue sans BOM.
         }
-        fputcsv($out, ['Date', 'Heure', 'Commercial', 'Entreprise', 'Contact', 'Secteur', 'Étape', 'Service', 'Résultat', 'Note', 'Rappel'], ';', '"', chr(92));
+        fputcsv($out, ['Date', 'Heure', 'Commercial', 'Entreprise', 'Contact', 'Secteur', 'Étape', 'Service', 'Résultat', 'Ne plus rappeler', 'Note', 'Rappel'], ';', '"', chr(92));
         foreach ($calls as $call) {
             fputcsv($out, [
                 date('d/m/Y', strtotime((string) $call['created_at'])),
@@ -68,6 +68,7 @@ final class CallController extends AdminController
                 (string) ($call['stage_name'] ?? ''),
                 (string) ($call['service_name'] ?? ''),
                 Call::resultLabel((string) $call['result']),
+                Call::isDoNotCall($call) ? 'Oui' : 'Non',
                 (string) $call['note'],
                 $call['callback_date'] ? date('d/m/Y', strtotime((string) $call['callback_date'])) : '',
             ], ';', '"', chr(92));
