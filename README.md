@@ -227,6 +227,14 @@ php tools/diagnose.php --plain
 Le détail des erreurs 500 est aussi écrit dans `storage/logs/php-AAAA-MM-JJ.log`
 si le dossier est accessible en écriture, sinon dans le journal du serveur web.
 
+**Si le message est un `SQLSTATE`** (par exemple `42S22 … Unknown column`), le code est
+correct mais la base est en retard d'une migration :
+
+```bash
+php tools/migrate.php --check   # liste ce qui manque, sans rien modifier
+php tools/migrate.php           # applique les corrections
+```
+
 Le script réinitialise d'abord les compteurs de tentatives de connexion
 (`tools/clear-login-attempts.php`) pour ne pas buter sur le blocage de sécurité
 après une série de mots de passe erronés. Cette commande est également utilisable seule :
@@ -505,8 +513,23 @@ mysqldump -u prime_script -p --single-transaction prime_script > sauvegarde-$(da
 ```
 
 **Mise à jour du code** : déposez les fichiers, vérifiez `php -l` sur les fichiers modifiés,
-rechargez PHP-FPM. Aucune migration automatique n'est nécessaire pour cette version
-(schéma inchangé depuis `schema.sql`).
+puis **vérifiez le schéma de la base** — c'est l'étape la plus souvent oubliée :
+
+```bash
+php tools/migrate.php --check   # n'écrit rien : liste les écarts
+php tools/migrate.php           # applique les corrections manquantes
+```
+
+Une base installée **avant** l'ajout d'une fonctionnalité n'a pas ses nouvelles colonnes.
+Le code, lui, est à jour : d'où une erreur 500 alors que tout est correct côté fichiers.
+Exemple réel : `Unknown column 'c.do_not_call'` sur le tableau de bord et « Mes appels »,
+parce que la migration `2026_11_04_contenu_pret_a_l_emploi.sql` n'avait jamais été
+exécutée sur une base créée plus tôt.
+
+> Une base neuve créée avec `database/schema.sql` est déjà complète : `tools/migrate.php`
+> n'y trouvera rien à faire. Seules les bases existantes sont concernées.
+
+Le détail des migrations est dans `database/migrations/`.
 
 **Développement local sans MySQL** (démonstration uniquement) :
 

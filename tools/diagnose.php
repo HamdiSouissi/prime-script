@@ -191,6 +191,70 @@ if ($connected && $driver === 'mysql') {
 }
 
 if ($connected) {
+    // Colonnes que les migrations versionnées ajoutent. Une base installée avant
+    // elles les ignore, et le code échoue alors en « Unknown column » (1054) :
+    // on le signale ici, avec la commande de correction, avant toute requête.
+    $attentes = [
+        'calls.do_not_call'        => '2026_11_04 — opposition au démarchage',
+        'speech_blocks.code'       => '2026_11_04 — import de contenu rejouable',
+        'objections.code'          => '2026_11_04 — import de contenu rejouable',
+    ];
+    /**
+     * Liste les colonnes réelles d'une table, quel que soit le moteur :
+     * information_schema pour MySQL, PRAGMA pour SQLite.
+     *
+     * @return array<int, string>|null null si la table est illisible
+     */
+    $colonnesDe = static function (string $table) use ($driver): ?array {
+        $reelle = Db::table($table);
+        try {
+            if ($driver === 'sqlite') {
+                $lignes = Db::all('PRAGMA table_info(' . $reelle . ')');
+                return array_map(static fn (array $l): string => strtolower((string) $l['name']), $lignes);
+            }
+            $lignes = Db::all(
+                'SELECT LOWER(COLUMN_NAME) AS nom FROM information_schema.COLUMNS
+                 WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?',
+                [$reelle]
+            );
+            return array_map(static fn (array $l): string => (string) $l['nom'], $lignes);
+        } catch (Throwable $e) {
+            note('lecture du schéma de ' . $reelle . ' impossible', $e->getMessage());
+            return null;
+        }
+    };
+
+    $retard = [];
+    $verifie = 0;
+    $cacheColonnes = [];
+    foreach ($attentes as $cible => $cause) {
+        [$table, $nomColonne] = explode('.', $cible);
+        if (!array_key_exists($table, $cacheColonnes)) {
+            $cacheColonnes[$table] = $colonnesDe($table);
+        }
+        $liste = $cacheColonnes[$table];
+        if ($liste === null) {
+            continue; // table absente ou illisible : déjà signalé
+        }
+        $verifie++;
+        if (!in_array(strtolower($nomColonne), $liste, true)) {
+            $retard[] = $cible . ' (' . $cause . ')';
+        }
+    }
+    if ($retard !== []) {
+        ko('schéma en retard sur le code', count($retard) . ' colonne(s) manquante(s)');
+        foreach ($retard as $item) {
+            echo '        · ' . $item . "\n";
+        }
+        echo "        → corriger avec : php tools/migrate.php\n";
+    } elseif ($verifie > 0) {
+        ok('schéma à jour', $verifie . ' colonne(s) de migration vérifiée(s)');
+    } else {
+        note('contrôle du schéma non concluant', 'tables illisibles');
+    }
+}
+
+if ($connected) {
     $tables = ['users', 'sectors', 'stages', 'services', 'speech_blocks', 'speech_block_versions', 'objections', 'calls', 'login_attempts'];
     foreach ($tables as $table) {
         $real = Db::table($table);
