@@ -141,10 +141,22 @@ php -l public/index.php                  # vérifie la syntaxe
 curl -I https://votre-domaine.fr/login   # doit répondre 200
 ```
 
-Un script de fumée optionnel est fourni pour un environnement local :
+Un script de fumée optionnel est fourni pour un environnement local. Il parcourt
+41 vérifications : connexion, parcours complet d'un appel, objections en JSON,
+enregistrement, historique, export CSV et contrôle d'accès administrateur.
 
 ```bash
 BASE=http://localhost:8099 bash tools/smoke-test.sh
+# si PHP n'est pas dans le PATH de la machine qui lance le test :
+PHP_CLI=/usr/bin/php8.2 BASE=http://localhost:8099 bash tools/smoke-test.sh
+```
+
+Le script réinitialise d'abord les compteurs de tentatives de connexion
+(`tools/clear-login-attempts.php`) pour ne pas buter sur le blocage de sécurité
+après une série de mots de passe erronés. Cette commande est également utilisable seule :
+
+```bash
+php tools/clear-login-attempts.php
 ```
 
 ---
@@ -349,7 +361,8 @@ application native, multilingue.
 
 **Pistes d'amélioration naturelles** : duplication d'un contexte d'appel complet,
 statistiques par période exportables, notifications de rappel arrivé à échéance,
-journal d'audit administrateur, tests automatisés PHPUnit.
+journal d'audit administrateur, tests automatisés PHPUnit, recherche plein texte
+sur les objections, mode hors ligne (PWA) pour les zones sans réseau.
 
 ---
 

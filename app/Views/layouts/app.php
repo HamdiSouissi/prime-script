@@ -82,7 +82,7 @@ $themeLabel = 'Mode sombre';
         <div class="header-actions">
             <button type="button" class="btn btn--ghost btn--icon" data-theme-toggle aria-pressed="false" title="Changer de thème" aria-label="Changer de thème (clair ou sombre)">
                 <?= Icon::svg('moon', 'theme-toggle__icon') ?>
-                <span class="visually-hidden theme-toggle__label"><?= Sanitizer::e($themeLabel) ?></span>
+                <span class="visually-hidden"><?= Sanitizer::e($themeLabel) ?></span>
             </button>
 
             <?php if ($user): ?>
@@ -141,11 +141,11 @@ $themeLabel = 'Mode sombre';
         <?php endif; ?>
 
         <?php if (isset($breadcrumb) && is_array($breadcrumb) && $breadcrumb !== []): ?>
-            <nav class="crumbs" aria-label="Fil d'Ariane" style="margin-bottom:var(--s-3);font-size:var(--fs-xs);color:var(--muted)">
+            <nav class="crumbs" aria-label="Fil d'Ariane">
                 <?php foreach ($breadcrumb as $i => $crumb): ?>
-                    <?php if ($i > 0): ?><span aria-hidden="true"> / </span><?php endif; ?>
+                    <?php if ($i > 0): ?><span class="crumbs__sep" aria-hidden="true"> / </span><?php endif; ?>
                     <?php if (!empty($crumb['url'])): ?>
-                        <a href="<?= Sanitizer::e(View::url($crumb['url'])) ?>" style="color:inherit"><?= Sanitizer::e($crumb['label']) ?></a>
+                        <a class="crumbs__link" href="<?= Sanitizer::e(View::url($crumb['url'])) ?>"><?= Sanitizer::e($crumb['label']) ?></a>
                     <?php else: ?>
                         <span aria-current="page"><?= Sanitizer::e($crumb['label']) ?></span>
                     <?php endif; ?>

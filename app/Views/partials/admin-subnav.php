@@ -17,6 +17,7 @@ $items = [
     ['key' => 'sectors',     'label' => 'Secteurs',         'url' => '/admin/secteurs',     'icon' => 'building'],
     ['key' => 'stages',      'label' => 'Étapes',           'url' => '/admin/etapes',       'icon' => 'flag'],
     ['key' => 'services',    'label' => 'Services',         'url' => '/admin/services',     'icon' => 'layers'],
+    'sep',
     ['key' => 'users',       'label' => 'Équipe',           'url' => '/admin/utilisateurs', 'icon' => 'users'],
     ['key' => 'calls',       'label' => 'Journal d\'appels','url' => '/admin/appels',       'icon' => 'history'],
 ];
@@ -24,7 +25,11 @@ $items = [
 <nav class="subnav no-print" aria-label="Administration">
     <ul class="subnav__list">
         <?php foreach ($items as $item): ?>
-            <li style="margin:0;list-style:none">
+            <?php if ($item === 'sep'): ?>
+                <li class="subnav__sep" aria-hidden="true"></li>
+                <?php continue; ?>
+            <?php endif; ?>
+            <li class="subnav__item">
                 <a class="subnav__link<?= $activeNav === $item['key'] ? ' is-active' : '' ?>"
                    href="<?= Sanitizer::e(View::url($item['url'])) ?>"
                    <?= $activeNav === $item['key'] ? 'aria-current="page"' : '' ?>>

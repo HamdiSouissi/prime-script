@@ -58,7 +58,12 @@ final class AuthController extends Controller
             Auth::recordFailure($email);
             $left = max(0, (int) Config::get('security.login_max_attempts', 5) - Auth::failedAttempts($email));
             $message = 'E-mail ou mot de passe incorrect.';
-            if ($left > 0 && $left <= 2) {
+            if ($left === 0) {
+                $message .= sprintf(
+                    ' Connexion bloquée pendant %d minutes par sécurité.',
+                    (int) Config::get('security.login_lock_minutes', 15)
+                );
+            } elseif ($left <= 2) {
                 $message .= ' Il reste ' . $left . ' tentative' . ($left > 1 ? 's' : '') . ' avant blocage temporaire.';
             }
             Session::flash('error', $message);

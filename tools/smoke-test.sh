@@ -9,6 +9,14 @@ ok()   { PASS=$((PASS+1)); printf '  \033[32m✓\033[0m %s\n' "$1"; }
 ko()   { FAIL=$((FAIL+1)); printf '  \033[31m✗\033[0m %s\n' "$1"; }
 check(){ if eval "$2"; then ok "$1"; else ko "$1"; fi; }
 
+echo "== Préparation"
+# Un blocage pour tentatives multiples (sécurité) ferait échouer la connexion :
+# on purge les compteurs si la commande PHP est disponible à côté du serveur.
+PHP_CLI="${PHP_CLI:-php}"
+if [ -f "$(dirname "$0")/clear-login-attempts.php" ]; then
+  "$PHP_CLI" "$(dirname "$0")/clear-login-attempts.php" >/dev/null 2>&1 || true
+fi
+
 echo "== Connexion"
 LOGIN_HTML=$(curl -s -c "$JAR" "$BASE/login")
 TOKEN=$(printf '%s' "$LOGIN_HTML" | grep -o 'name="_token" value="[^"]*"' | head -1 | sed 's/.*value="//;s/"//')
