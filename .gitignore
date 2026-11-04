@@ -1,0 +1,33 @@
+# ------------------------------------------------------------------
+#  Prime Script — fichiers ignorés par Git
+# ------------------------------------------------------------------
+
+# Configuration locale (contient les identifiants de base de données)
+/config/config.php
+
+# Journaux, caches, sauvegardes et bases de démonstration
+/storage/logs/*
+!/storage/logs/.gitkeep
+/storage/cache/*
+!/storage/cache/.gitkeep
+/storage/*.sqlite
+/storage/*.sqlite-journal
+/storage/*.db
+/storage/backups/
+
+# Fichiers système et éditeurs
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.idea/
+.vscode/
+*.sublime-*
+
+# Dépendances éventuelles (l'application n'en a pas besoin)
+/vendor/
+/node_modules/
+
+# Fichiers de travail
+*.log
+/tmp/

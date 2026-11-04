@@ -1,0 +1,36 @@
+# =====================================================================
+#  Prime Script — Protection du dossier racine
+# =====================================================================
+#  Idéal : configurer le document root de l'hébergement sur /public.
+#
+#  Si le document root ne peut pas être changé (mutualisé), ce fichier
+#  renvoie toutes les requêtes vers le dossier public/ et interdit
+#  l'accès direct aux dossiers applicatifs (app/, config/, database/, storage/).
+# =====================================================================
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # 1) Les dossiers applicatifs ne doivent jamais être servis directement.
+    RewriteRule ^(app|config|database|storage|tools)(/|$) - [F,L]
+
+    # 2) Fichiers sensibles à la racine.
+    RewriteRule ^(README\.md|.*\.sql|.*\.md)$ - [F,L]
+
+    # 3) Tout le reste est servi depuis public/.
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+
+# Blocage de secours si mod_rewrite est absent.
+<FilesMatch "\.(sql|md|ini|log|sh|bak|old|example)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+Options -Indexes

@@ -1,0 +1,246 @@
+/* =====================================================================
+   Prime Script — Jetons de design (couleurs, typographies, espacements)
+   Repris de la charte de primevisionsolutions.fr.
+   Tout se règle ici : changer une couleur = changer une ligne.
+   ===================================================================== */
+
+@font-face {
+  font-family: "Public Sans";
+  src: url("../fonts/public-sans-latin-400-normal.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Public Sans";
+  src: url("../fonts/public-sans-latin-500-normal.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Public Sans";
+  src: url("../fonts/public-sans-latin-600-normal.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Public Sans";
+  src: url("../fonts/public-sans-latin-700-normal.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Bricolage Grotesque";
+  src: url("../fonts/bricolage-grotesque-latin-600-normal.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Bricolage Grotesque";
+  src: url("../fonts/bricolage-grotesque-latin-700-normal.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Bricolage Grotesque";
+  src: url("../fonts/bricolage-grotesque-latin-800-normal.woff2") format("woff2");
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ------------------------------------------------------------- Thème clair */
+:root {
+  /* Marque */
+  --brand-blue: #0054fa;
+  --brand-night: #061230;
+  --brand-cyan: #00b8ff;
+
+  /* Fonds et surfaces */
+  --bg: #f3f6fc;
+  --bg-deep: #e9eefa;
+  --surface: #ffffff;
+  --surface-2: #f8faff;
+  --surface-glass: rgba(255, 255, 255, 0.78);
+  --overlay: rgba(6, 18, 48, 0.45);
+
+  /* Textes */
+  --ink: #061230;
+  --ink-soft: #24314f;
+  --muted: #4b5568;
+  --muted-2: #66708a;
+  --line: #d5dae5;
+  --line-soft: #e6eaf3;
+
+  /* Accent et états */
+  --accent: #0b5cff;
+  --accent-strong: #0043d1;
+  --accent-soft: #e1ebff;
+  --on-accent: #ffffff;
+  --ok: #067647;
+  --ok-soft: #e7f8ef;
+  --warn: #8a5a00;
+  --warn-soft: #fff5db;
+  --err: #b42318;
+  --err-soft: #fdecea;
+  --info: #1d4fa8;
+  --info-soft: #eaf1ff;
+
+  /* Typographies */
+  --font-sans: "Public Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Bricolage Grotesque", "Public Sans", system-ui, sans-serif;
+
+  --fs-xxs: 0.75rem;
+  --fs-xs: 0.8125rem;
+  --fs-sm: 0.9375rem;
+  --fs-base: 1.0625rem;
+  --fs-md: 1.125rem;
+  --fs-lg: 1.375rem;
+  --fs-xl: 1.75rem;
+  --fs-2xl: clamp(1.75rem, 1.4rem + 1.4vw, 2.5rem);
+  --fs-3xl: clamp(2rem, 1.5rem + 2vw, 3rem);
+  --lh-tight: 1.15;
+  --lh-snug: 1.35;
+  --lh-base: 1.6;
+
+  /* Espacements */
+  --s-1: 0.25rem;
+  --s-2: 0.5rem;
+  --s-3: 0.75rem;
+  --s-4: 1rem;
+  --s-5: 1.25rem;
+  --s-6: 1.5rem;
+  --s-8: 2rem;
+  --s-10: 2.5rem;
+  --s-12: 3rem;
+  --s-16: 4rem;
+
+  /* Formes */
+  --r-xs: 0.5rem;
+  --r-sm: 0.75rem;
+  --r-md: 1rem;
+  --r-lg: 1.375rem;
+  --r-xl: 1.75rem;
+  --r-pill: 999px;
+
+  /* Ombres */
+  --shadow-xs: 0 1px 2px rgba(6, 18, 48, 0.06);
+  --shadow-sm: 0 2px 8px rgba(6, 18, 48, 0.06), 0 1px 2px rgba(6, 18, 48, 0.04);
+  --shadow-md: 0 8px 28px -10px rgba(6, 18, 48, 0.18), 0 2px 6px rgba(6, 18, 48, 0.05);
+  --shadow-lg: 0 24px 60px -24px rgba(6, 18, 48, 0.35), 0 8px 20px -12px rgba(6, 18, 48, 0.18);
+  --shadow-accent: 0 10px 30px -12px rgba(11, 92, 255, 0.55);
+
+  /* Interlignes tactiles / animations */
+  --tap: 44px;
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --t-fast: 140ms var(--ease);
+  --t-base: 220ms var(--ease);
+  --t-slow: 380ms var(--ease);
+
+  /* Mise en page */
+  --shell-max: 1240px;
+  --header-h: 4rem;
+
+  /* Dégradés de marque */
+  --gradient-brand: linear-gradient(135deg, #0b5cff 0%, #2b3fd6 55%, #6c5cff 100%);
+  --gradient-mesh:
+    radial-gradient(58% 70% at 12% 0%, rgba(11, 92, 255, 0.12), transparent 60%),
+    radial-gradient(45% 55% at 92% 8%, rgba(0, 184, 255, 0.1), transparent 60%),
+    radial-gradient(40% 50% at 70% 100%, rgba(108, 92, 255, 0.09), transparent 60%);
+
+  color-scheme: light;
+}
+
+/* ---------------------------------------------------------- Thème sombre */
+/* 1) Préférence système, sauf choix explicite « clair » */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #050b1e;
+    --bg-deep: #040817;
+    --surface: #0c1633;
+    --surface-2: #101c3d;
+    --surface-glass: rgba(12, 22, 51, 0.78);
+    --overlay: rgba(2, 6, 20, 0.7);
+
+    --ink: #f5f7fb;
+    --ink-soft: #dbe3f4;
+    --muted: #aeb8cf;
+    --muted-2: #8d99b5;
+    --line: #1e2d57;
+    --line-soft: #17244a;
+
+    --accent: #5b9bff;
+    --accent-strong: #8bb8ff;
+    --accent-soft: #0f1d45;
+    --on-accent: #04102b;
+    --ok: #6ce9a6;
+    --ok-soft: #06281a;
+    --warn: #ffd479;
+    --warn-soft: #2b2107;
+    --err: #fda29b;
+    --err-soft: #33100d;
+    --info: #9dc0ff;
+    --info-soft: #0d1c40;
+
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.5);
+    --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.45);
+    --shadow-md: 0 14px 34px -14px rgba(0, 0, 0, 0.7), 0 2px 8px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 32px 72px -28px rgba(0, 0, 0, 0.85), 0 10px 24px -14px rgba(0, 0, 0, 0.6);
+    --shadow-accent: 0 12px 34px -14px rgba(91, 155, 255, 0.6);
+
+    --gradient-mesh:
+      radial-gradient(58% 70% at 12% 0%, rgba(11, 92, 255, 0.22), transparent 62%),
+      radial-gradient(45% 55% at 92% 8%, rgba(0, 184, 255, 0.12), transparent 60%),
+      radial-gradient(40% 50% at 70% 100%, rgba(108, 92, 255, 0.14), transparent 60%);
+
+    color-scheme: dark;
+  }
+}
+
+/* 2) Choix explicite « sombre » (interrupteur) */
+:root[data-theme="dark"] {
+  --bg: #050b1e;
+  --bg-deep: #040817;
+  --surface: #0c1633;
+  --surface-2: #101c3d;
+  --surface-glass: rgba(12, 22, 51, 0.78);
+  --overlay: rgba(2, 6, 20, 0.7);
+
+  --ink: #f5f7fb;
+  --ink-soft: #dbe3f4;
+  --muted: #aeb8cf;
+  --muted-2: #8d99b5;
+  --line: #1e2d57;
+  --line-soft: #17244a;
+
+  --accent: #5b9bff;
+  --accent-strong: #8bb8ff;
+  --accent-soft: #0f1d45;
+  --on-accent: #04102b;
+  --ok: #6ce9a6;
+  --ok-soft: #06281a;
+  --warn: #ffd479;
+  --warn-soft: #2b2107;
+  --err: #fda29b;
+  --err-soft: #33100d;
+  --info: #9dc0ff;
+  --info-soft: #0d1c40;
+
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.45);
+  --shadow-md: 0 14px 34px -14px rgba(0, 0, 0, 0.7), 0 2px 8px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 32px 72px -28px rgba(0, 0, 0, 0.85), 0 10px 24px -14px rgba(0, 0, 0, 0.6);
+  --shadow-accent: 0 12px 34px -14px rgba(91, 155, 255, 0.6);
+
+  --gradient-mesh:
+    radial-gradient(58% 70% at 12% 0%, rgba(11, 92, 255, 0.22), transparent 62%),
+    radial-gradient(45% 55% at 92% 8%, rgba(0, 184, 255, 0.12), transparent 60%),
+    radial-gradient(40% 50% at 70% 100%, rgba(108, 92, 255, 0.14), transparent 60%);
+
+  color-scheme: dark;
+}
