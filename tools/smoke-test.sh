@@ -66,16 +66,23 @@ TOKEN=$(printf '%s' "$LOGIN_HTML" | grep -o 'name="_token" value="[^"]*"' | head
 curl -s -b "$JAR2" -c "$JAR2" -o /dev/null -X POST "$BASE/login" \
   -d "email=${ADMIN_EMAIL:-admin@primevisionsolutions.fr}" -d "password=${ADMIN_PASSWORD:-AdminPrime2026!}" -d "_token=$TOKEN"
 
-for page in /admin /admin/blocs /admin/blocs/nouveau /admin/blocs/1/modifier /admin/blocs/1/historique \
-            /admin/objections /admin/objections/1/modifier /admin/secteurs /admin/etapes /admin/services \
-            /admin/utilisateurs /admin/utilisateurs/2/modifier /admin/appels /profil; do
+# Identifiants réels du jeu de données (évite de figer des numéros en dur).
+FIRST_BLOCK=$(curl -s -b "$JAR2" "$BASE/admin/blocs" | grep -o "/admin/blocs/[0-9]*/modifier" | head -1 | grep -o "[0-9]*")
+FIRST_OBJECTION=$(curl -s -b "$JAR2" "$BASE/admin/objections" | grep -o "/admin/objections/[0-9]*/modifier" | head -1 | grep -o "[0-9]*")
+FIRST_USER=$(curl -s -b "$JAR2" "$BASE/admin/utilisateurs" | grep -o "/admin/utilisateurs/[0-9]*/modifier" | head -1 | grep -o "[0-9]*")
+check "identifiants de démonstration trouvés" '[ -n "$FIRST_BLOCK" ] && [ -n "$FIRST_OBJECTION" ] && [ -n "$FIRST_USER" ]'
+
+for page in /admin /admin/blocs /admin/blocs/nouveau "/admin/blocs/${FIRST_BLOCK}/modifier" \
+            "/admin/blocs/${FIRST_BLOCK}/historique" /admin/objections "/admin/objections/${FIRST_OBJECTION}/modifier" \
+            /admin/secteurs /admin/etapes /admin/services /admin/utilisateurs \
+            "/admin/utilisateurs/${FIRST_USER}/modifier" /admin/appels /profil; do
   C=$(curl -s -b "$JAR2" -o /tmp/adm.html -w '%{http_code}' "$BASE$page")
   if [ "$C" = "200" ]; then ok "GET $page (200)"; else ko "GET $page ($C)"; fi
   if grep -q "Fatal error\|Erreur applicative" /tmp/adm.html; then ko "aucune erreur PHP sur $page"; fi
 done
 
 check "blocs : les 50 blocs du jeu de démo sont listés" '[ "$(curl -s -b "$JAR2" "$BASE/admin/blocs" | grep -c "/modifier")" -ge 50 ]'
-check "aperçu d'un bloc (HTML rendu)" 'curl -s -b "$JAR2" "$BASE/admin/blocs/1/apercu" | grep -qi "Prime Vision"'
+check "aperçu d'un bloc (HTML rendu)" 'curl -s -b "$JAR2" "$BASE/admin/blocs/${FIRST_BLOCK}/apercu" | grep -qi "Prime Vision"'
 check "export CSV du journal d.appels" 'curl -s -b "$JAR2" "$BASE/admin/appels/export.csv" | head -1 | grep -q "Date"'
 
 echo

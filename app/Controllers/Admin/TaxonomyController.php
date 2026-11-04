@@ -24,6 +24,7 @@ final class TaxonomyController extends AdminController
             'model'   => Sector::class,
             'label'   => 'Secteurs',
             'single'  => 'secteur',
+            'feminine' => false,
             'nav'     => 'sectors',
             'view'    => 'admin/taxonomy/sectors',
             'options' => 'SECTOR_ICONS',
@@ -32,6 +33,7 @@ final class TaxonomyController extends AdminController
             'model'   => Stage::class,
             'label'   => 'Étapes de suivi',
             'single'  => 'étape',
+            'feminine' => true,
             'nav'     => 'stages',
             'view'    => 'admin/taxonomy/stages',
             'options' => null,
@@ -40,6 +42,7 @@ final class TaxonomyController extends AdminController
             'model'   => Service::class,
             'label'   => 'Services',
             'single'  => 'service',
+            'feminine' => false,
             'nav'     => 'services',
             'view'    => 'admin/taxonomy/services',
             'options' => 'SERVICE_ICONS',
@@ -78,7 +81,7 @@ final class TaxonomyController extends AdminController
         $model = $config['model'];
         $model::create($data + ['position' => $model::nextPosition()]);
 
-        Session::flash('success', ucfirst($config['single']) . ' ajouté.');
+        Session::flash('success', ucfirst($config['single']) . ($config['feminine'] ? ' ajoutée.' : ' ajouté.'));
         $this->redirect('/admin/' . $kind);
     }
 
@@ -98,7 +101,7 @@ final class TaxonomyController extends AdminController
             $this->redirect('/admin/' . $kind);
         }
         $model::update((int) $item['id'], $data);
-        Session::flash('success', ucfirst($config['single']) . ' mis à jour.');
+        Session::flash('success', ucfirst($config['single']) . ($config['feminine'] ? ' mise à jour.' : ' mis à jour.'));
         $this->redirect('/admin/' . $kind);
     }
 
@@ -120,7 +123,9 @@ final class TaxonomyController extends AdminController
 
         $newState = (int) $item['is_active'] === 1 ? 0 : 1;
         $model::update((int) $item['id'], ['is_active' => $newState]);
-        Session::flash('success', ucfirst($config['single']) . ($newState === 1 ? ' réactivé.' : ' désactivé (masqué côté commercial).'));
+        Session::flash('success', ucfirst($config['single']) . ($newState === 1
+            ? ($config['feminine'] ? ' réactivée.' : ' réactivé.')
+            : ($config['feminine'] ? ' désactivée (masquée côté commercial).' : ' désactivé (masqué côté commercial).')));
         $this->redirect('/admin/' . $kind);
     }
 
@@ -154,15 +159,18 @@ final class TaxonomyController extends AdminController
             $this->failure(
                 '/admin/' . $kind,
                 sprintf(
-                    'Suppression impossible : ce %s est utilisé dans %d contenu(s) ou appel(s). Désactivez-le à la place.',
+                    'Suppression impossible : %s %s %s utilisé dans %d contenu(s) ou appel(s). Désactivez-%s à la place.',
+                    $config['feminine'] ? 'cette' : 'ce',
                     $config['single'],
-                    $usage
+                    $config['feminine'] ? 'est' : 'est',
+                    $usage,
+                    $config['feminine'] ? 'la' : 'le'
                 )
             );
         }
 
         $model::delete((int) $item['id']);
-        Session::flash('success', ucfirst($config['single']) . ' supprimé.');
+        Session::flash('success', ucfirst($config['single']) . ($config['feminine'] ? ' supprimée.' : ' supprimé.'));
         $this->redirect('/admin/' . $kind);
     }
 
