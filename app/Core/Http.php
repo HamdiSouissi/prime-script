@@ -98,6 +98,54 @@ final class Http
         return (int) ($_SERVER['SERVER_PORT'] ?? 0) === 443;
     }
 
+    /**
+     * Répertoire d'installation de l'application, sans slash final (ex. '/prime-script').
+     *
+     * Vaut '' quand l'application est servie à la racine du domaine, ce qui est le cas
+     * nominal. Un préfixe n'existe que si le front controller n'est pas à la racine :
+     * `SCRIPT_NAME` se termine alors par « /index.php » (ex. /prime-script/index.php).
+     *
+     * ⚠️ On ne peut PAS déduire ce préfixe du seul `dirname(SCRIPT_NAME)` : selon la
+     * passerelle (serveur intégré `php -S`, certaines configurations FastCGI), `SCRIPT_NAME`
+     * vaut le chemin *demandé* et non le script exécuté. Sur « /appel/presentation »,
+     * `dirname()` renvoie alors « /appel » — le chemin était tronqué en « /presentation »
+     * (page introuvable) et les liens, formulaires et feuilles de style étaient préfixés
+     * à tort. Seuls les SCRIPT_NAME finissant par « .php » sont retenus ici.
+     */
+    public static function basePath(): string
+    {
+        $scriptDir = self::configuredBasePath();
+        if ($scriptDir === null) {
+            $scriptName = str_replace('\\', '/', (string) ($_SERVER['SCRIPT_NAME'] ?? ''));
+            $scriptDir = preg_match('#^(.*)/[^/]+\.php$#', $scriptName, $m) === 1 ? $m[1] : '';
+            // Document root au-dessus de public/ (repli .htaccess documenté au §3.5) :
+            // le script exécuté est « …/public/index.php », mais l'URL publique, elle,
+            // ne contient pas « …/public ». On retire ce segment pour que les liens
+            // générés restent valides (sinon : …/public/admin → 404).
+            if ($scriptDir === '/public' || str_ends_with($scriptDir, '/public')) {
+                $scriptDir = substr($scriptDir, 0, -strlen('/public'));
+            }
+        }
+
+        return $scriptDir === '/' ? '' : rtrim($scriptDir, '/');
+    }
+
+    /**
+     * Sous-dossier éventuel fourni par la configuration (`app.base_url`).
+     * Renvoie null quand aucune configuration ne l'impose.
+     */
+    private static function configuredBasePath(): ?string
+    {
+        $configured = trim((string) Config::get('app.base_url', ''));
+        if ($configured === '') {
+            return null;
+        }
+        $path = parse_url($configured, PHP_URL_PATH);
+        $path = is_string($path) ? trim($path, '/') : '';
+
+        return $path === '' ? '' : '/' . $path;
+    }
+
     /** Chemin demandé, sans la chaîne de requête (toujours commençant par /). */
     public static function path(): string
     {
@@ -106,9 +154,11 @@ final class Http
         $path = is_string($path) ? $path : '/';
 
         // Si l'application est installée dans un sous-dossier, on retire ce préfixe.
-        $scriptDir = str_replace('\\', '/', dirname((string) ($_SERVER['SCRIPT_NAME'] ?? '/')));
-        if ($scriptDir !== '/' && $scriptDir !== '.' && str_starts_with($path, $scriptDir)) {
-            $path = substr($path, strlen($scriptDir));
+        $basePath = self::basePath();
+        if ($basePath !== '' && str_starts_with($path, $basePath . '/')) {
+            $path = substr($path, strlen($basePath));
+        } elseif ($basePath !== '' && $path === $basePath) {
+            $path = '/';
         }
 
         $path = '/' . ltrim($path, '/');
@@ -132,12 +182,8 @@ final class Http
 
         $scheme = self::isHttps() ? 'https' : 'http';
         $host = (string) ($_SERVER['HTTP_HOST'] ?? 'localhost');
-        $scriptDir = str_replace('\\', '/', dirname((string) ($_SERVER['SCRIPT_NAME'] ?? '/index.php')));
-        $scriptDir = rtrim($scriptDir, '/');
-        if ($scriptDir === '.' || $scriptDir === '/') {
-            $scriptDir = '';
-        }
-        return self::$baseUrl = $scheme . '://' . $host . $scriptDir;
+
+        return self::$baseUrl = $scheme . '://' . $host . self::basePath();
     }
 
     /** Construit une URL absolue à partir d'un chemin interne. */

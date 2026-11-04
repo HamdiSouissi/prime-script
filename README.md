@@ -128,6 +128,12 @@ cp config/config.example.php config/config.php
 
 Le fichier `config/config.php` est **ignoré par Git** et interdit d'accès par `.htaccess`.
 
+> **Installation dans un sous-dossier** (`https://exemple.fr/prime-script/`) : renseignez
+> `app.base_url` avec l'URL complète, **sous-dossier compris**. C'est la seule façon fiable
+> de connaître le préfixe — certains serveurs (serveur intégré `php -S`, certaines
+> passerelles FastCGI) renseignent `SCRIPT_NAME` avec le chemin *demandé* et non le script
+> exécuté, ce qui fausserait la détection automatique.
+
 ### 3.5 Pointer le serveur web sur `public/`
 
 **Idéal** — le document root de l'hébergement pointe sur le dossier `public/`.
@@ -174,13 +180,22 @@ curl -I https://votre-domaine.fr/login   # doit répondre 200
 ```
 
 Un script de fumée optionnel est fourni pour un environnement local. Il parcourt
-41 vérifications : connexion, parcours complet d'un appel, objections en JSON,
-enregistrement, historique, export CSV et contrôle d'accès administrateur.
+66 vérifications : connexion, parcours complet d'un appel, objections en JSON,
+enregistrement, historique, export CSV, navigation transversale (aucun lien interne
+mort, y compris sur les URL à plusieurs segments) et contrôle d'accès administrateur.
 
 ```bash
 BASE=http://localhost:8099 bash tools/smoke-test.sh
 # si PHP n'est pas dans le PATH de la machine qui lance le test :
 PHP_CLI=/usr/bin/php8.2 BASE=http://localhost:8099 bash tools/smoke-test.sh
+```
+
+La détection du chemin d'installation se teste séparément, sans serveur (8 configurations
+de déploiement : racine, sous-dossier, document root au-dessus de `public/`, passerelle
+qui renseigne `SCRIPT_NAME` avec le chemin demandé…) :
+
+```bash
+php tools/test-urls.php
 ```
 
 Le script réinitialise d'abord les compteurs de tentatives de connexion
@@ -472,6 +487,10 @@ cp config/config.example.php config/config.php
 php tools/make-sample-db.php                 # génère storage/prime-script.sample.sqlite
 php -S localhost:8099 -t public               # http://localhost:8099
 ```
+
+> Avec le serveur intégré, `SCRIPT_NAME` vaut le chemin demandé (et non `index.php`) :
+> l'application en tient compte depuis la v1.0.1, mais si vous installez le site dans un
+> sous-dossier, renseignez toujours `app.base_url` (voir §3.4).
 
 **Périmètre v1 volontairement exclu** (l'architecture reste ouverte) :
 téléphonie / CRM, enregistrement des appels, jeu de rôle, génération de contenu par IA,
