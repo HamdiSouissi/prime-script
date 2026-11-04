@@ -56,10 +56,11 @@
 
 /* ------------------------------------------------------------- Thème clair */
 :root {
-  /* Marque */
-  --brand-blue: #0054fa;
-  --brand-night: #061230;
-  --brand-cyan: #00b8ff;
+  /* Marque — valeurs relevées sur le logo fourni */
+  --brand-blue: #0267d0;
+  --brand-night: #05132a;
+  --brand-cyan: #2f8bf0;
+  --brand-mark-gradient: linear-gradient(150deg, #05132a 0%, #0b2a5c 45%, #0267d0 100%);
 
   /* Fonds et surfaces */
   --bg: #f3f6fc;

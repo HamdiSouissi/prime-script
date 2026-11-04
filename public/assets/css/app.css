@@ -224,8 +224,32 @@ hr {
   color: var(--ink);
 }
 .brand__logo {
-  height: 2.1rem;
+  height: 2.35rem;
   width: auto;
+  display: block;
+}
+/* Le logo existe en deux déclinaisons : on n'affiche que celle qui contraste. */
+.brand [data-logo-dark],
+.auth-card__brand [data-logo-dark] {
+  display: none;
+}
+:root[data-theme="dark"] .brand [data-logo-light],
+:root[data-theme="dark"] .auth-card__brand [data-logo-light] {
+  display: none;
+}
+:root[data-theme="dark"] .brand [data-logo-dark],
+:root[data-theme="dark"] .auth-card__brand [data-logo-dark] {
+  display: block;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .brand [data-logo-light],
+  :root:not([data-theme="light"]) .auth-card__brand [data-logo-light] {
+    display: none;
+  }
+  :root:not([data-theme="light"]) .brand [data-logo-dark],
+  :root:not([data-theme="light"]) .auth-card__brand [data-logo-dark] {
+    display: block;
+  }
 }
 .brand__tag {
   font: 600 var(--fs-xxs) / 1.2 var(--font-sans);
@@ -2974,7 +2998,7 @@ details.disclosure > div {
   z-index: 1;
 }
 .auth-aside__logo {
-  height: 2.6rem;
+  height: 3rem;
   width: auto;
 }
 .auth-aside h2 {
@@ -3028,7 +3052,7 @@ details.disclosure > div {
   margin-bottom: var(--s-6);
 }
 .auth-card__brand img {
-  height: 2.4rem;
+  height: 2.6rem;
   width: auto;
 }
 /* Page d'authentification : fond dédié au layout plein écran. */
@@ -3559,6 +3583,9 @@ details.disclosure > div {
   .brand__tag {
     display: none;
   }
+  .brand__logo {
+    height: 2rem;
+  }
   .week-chart {
     height: 6rem;
   }
@@ -3570,6 +3597,10 @@ details.disclosure > div {
 @media (max-width: 560px) {
   body {
     font-size: 1rem;
+  }
+  /* Barre très étroite : la marque seule tient à côté des actions. */
+  .brand__logo {
+    height: 1.9rem;
   }
   .shell,
   .shell-mid,
@@ -3626,6 +3657,17 @@ details.disclosure > div {
 }
 
 /* Impression (récapitulatifs, journal) */
+/* Très petits téléphones (320-400 px) : le logo se réduit pour laisser la place
+   aux actions de l'en-tête (thème, compte). */
+@media (max-width: 400px) {
+  .brand {
+    gap: 0.4rem;
+  }
+  .brand__logo {
+    height: 1.6rem;
+  }
+}
+
 @media print {
   .app-header,
   .subnav,

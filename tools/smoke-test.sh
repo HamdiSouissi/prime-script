@@ -57,6 +57,14 @@ R=$(curl -s -b "$JAR" -H "Accept: application/json" -H "X-Requested-With: XMLHtt
 check "enregistrement de l'appel (201 JSON)" '[ "$R" = "201" ]'
 check "réponse JSON ok" 'grep -q "\"ok\":true" /tmp/end.json'
 
+echo "== Identité visuelle"
+check "logo horizontal servi" '[ "$(curl -s -o /dev/null -w "%{http_code}" "$BASE/assets/img/logo-horizontal.png")" = "200" ]'
+check "logo variante sombre servie" '[ "$(curl -s -o /dev/null -w "%{http_code}" "$BASE/assets/img/logo-horizontal-dark.png")" = "200" ]'
+check "favicon 32 px servi" '[ "$(curl -s -o /dev/null -w "%{http_code}" "$BASE/assets/img/favicon-32.png")" = "200" ]'
+check "icône iOS servie" '[ "$(curl -s -o /dev/null -w "%{http_code}" "$BASE/assets/img/apple-touch-icon.png")" = "200" ]'
+check "logo affiché dans l'en-tête connecté" 'curl -s -b "$JAR" "$BASE/" | grep -q "logo-horizontal.png"'
+check "variante sombre présente pour le thème sombre" 'curl -s -b "$JAR" "$BASE/" | grep -q "logo-horizontal-dark.png"'
+
 echo "== Contenu prêt à l'emploi"
 check "guide « Bien démarrer » accessible" 'curl -s -b "$JAR" "$BASE/guide" | grep -qi "gles d.or"'
 check "guide : dialogue d.exemple présent" 'curl -s -b "$JAR" "$BASE/guide" | grep -q "Le prospect"'

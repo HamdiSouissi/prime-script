@@ -204,7 +204,7 @@ prime-script/
 │       ├── css/tokens.css      variables de design (:root), thèmes clair/sombre
 │       ├── css/app.css         composants et mises en page
 │       ├── js/app.js           interactions (drawer, accordéons, confirmations, recherche)
-│       ├── img/                logos Prime Vision + sprite SVG icons.svg
+│       ├── img/                logos Prime Vision (voir § 4.1) + sprite SVG icons.svg
 │       └── fonts/              Bricolage Grotesque + Public Sans (woff2, auto-hébergées)
 ├── app/
 │   ├── bootstrap.php           chargement, configuration, erreurs, session, routes
@@ -257,6 +257,45 @@ prime-script/
 ```
 
 ---
+
+### 4.1 Identité visuelle (logos et icônes)
+
+Tous les fichiers sont générés à partir du **logo officiel Prime Vision Solutions** (le
+verrou vertical fourni : marque RV au-dessus de « PRIME VISION / SOLUTIONS »). Fonds
+transparents, tailles calées sur l'usage réel.
+
+| Fichier | Taille | Usage |
+|---------|--------|-------|
+| `logo-horizontal.png` | 504 × 96 | en-tête de l'application, carte de connexion |
+| `logo-horizontal-dark.png` | 504 × 96 | même usage en thème sombre (bleu nuit → blanc cassé) |
+| `logo-full.png` | 555 × 300 | verrou vertical, documents et pages hors application |
+| `logo-full-dark.png` | 555 × 300 | idem sur fond sombre |
+| `logo-mark.png` | 371 × 240 | marque seule (RV), espaces étroits |
+| `logo-mark-dark.png` | 371 × 240 | marque seule sur fond sombre |
+| `favicon.png` / `favicon-32.png` | 64 / 32 px | onglet du navigateur |
+| `apple-touch-icon.png` | 180 px | écran d'accueil iOS / Android |
+
+**Pourquoi deux jeux de couleurs ?** Le bleu nuit du logo (`#05132A`) disparaît sur le fond
+sombre de l'application (`#050b1e`). La version « dark » reprend la marque en blanc cassé et
+éclaircit le dégradé bleu du V. Le basculement se fait en CSS (`data-logo-light` /
+`data-logo-dark`), sans JavaScript : le bon fichier est déjà dans la page, aucun clignotement.
+
+**Remplacer le logo** : déposez les nouveaux fichiers sous ces mêmes noms, en conservant les
+proportions (5,25:1 pour la version horizontale). Les attributs `width` / `height` des balises
+`<img>` évitent tout décalage de mise en page au chargement.
+
+Pour régénérer tous les fichiers depuis le visuel carré d'origine :
+
+```bash
+python3 tools/build-logo.py        # nécessite Pillow : pip install pillow
+```
+
+Le script détoure le fond uni, recompose la version horizontale à partir de la marque et du
+nom, produit les variantes sombres et les icônes. La source est `tools/brand/logo-source.png`.
+
+Les couleurs de la marque sont centralisées dans `public/assets/css/tokens.css`
+(`--brand-night`, `--brand-blue`, `--brand-cyan`), relevées sur le logo : `#05132A`,
+`#0267D0`, `#2F8BF0`.
 
 ## 5. Base de données
 
