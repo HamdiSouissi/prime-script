@@ -26,7 +26,31 @@ final class SpeechRenderer
         }
 
         $html = self::replaceVariables($html, $variables);
-        return Sanitizer::richText($html, 20000);
+        $html = Sanitizer::richText($html, 20000);
+
+        return trim(self::frenchTypo($html));
+    }
+
+    /**
+     * Typographie française sur le texte seul (jamais dans les balises) :
+     * espace insécable avant « ; : ! ? » et à l'intérieur des guillemets.
+     */
+    public static function frenchTypo(string $html): string
+    {
+        $nbsp = "\u{00A0}";
+        $parts = preg_split('/(<[^>]*>)/u', $html, -1, PREG_SPLIT_DELIM_CAPTURE) ?: [$html];
+
+        foreach ($parts as $index => $part) {
+            if ($part === '' || str_starts_with($part, '<')) {
+                continue;
+            }
+            $part = preg_replace('/[ \t]*([;:!?])/u', $nbsp . '$1', $part) ?? $part;
+            $part = preg_replace('/«[ \t]*/u', '«' . $nbsp, $part) ?? $part;
+            $part = preg_replace('/[ \t]*»/u', $nbsp . '»', $part) ?? $part;
+            $parts[$index] = $part;
+        }
+
+        return implode('', $parts);
     }
 
     /** Remplace les variables, en gérant proprement les valeurs vides. */
