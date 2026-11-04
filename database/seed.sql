@@ -46,7 +46,7 @@ INSERT INTO stages (id, name, slug, description, color, position, is_active) VAL
 -- ---------------------------------------------------------------- Services
 INSERT INTO services (id, name, slug, description, icon, price_from, position, is_active) VALUES
 (1, 'Site web', 'site-web', 'Un site rapide et clair qui présente votre activité et génère des demandes de devis.', 'monitor', 790, 1, 1),
-(2, 'Application web / mobile', 'application', 'Une application sur mesure pour remplacer les tableurs et automatiser votre quotidien.', 'smartphone-app', 2900, 2, 1),
+(2, 'Application web / mobile', 'application', 'Une application sur mesure : site métier, espace client ou application mobile.', 'smartphone-app', 2900, 2, 1),
 (3, 'Automatisation IA', 'automatisation-ia', 'Des assistants IA et des automatisations qui suppriment les tâches répétitives.', 'cpu', 990, 3, 1),
 (4, 'Chatbot IA', 'chatbot-ia', 'Un assistant sur votre site qui répond 24 h/24 et capture les demandes de devis.', 'bot', 990, 4, 1);
 

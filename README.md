@@ -216,7 +216,7 @@ prime-script/
 | `users` | comptes internes | `role` (`commercial`/`admin`), `is_active`, `last_login_at`, `password_hash` |
 | `sectors` | 4 secteurs | `name`, `icon`, `description`, `position`, `is_active` |
 | `stages` | 3 étapes | idem |
-| `services` | services vendus | `price_from` (tarif dès X € HT) |
+| `services` | 4 services vendus | `description`, `icon`, `price_from` (tarif dès X € HT : site 790 €, application 2 900 €, automatisation et chatbot 990 €) |
 | `speech_blocks` | discours modulaires | `type` ∈ présentation, accroche, découverte, argumentaire, preuve, tarif, appel_action, objection ; liens **optionnels** secteur / étape / service |
 | `speech_block_versions` | historique | instantané avant chaque modification, `change_note`, restauration en un clic |
 | `objections` | objections fréquentes | question + réponse courte, secteur / service optionnels |
