@@ -26,10 +26,12 @@ $themeLabel = 'Mode sombre';
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title><?= Sanitizer::e($pageTitle) ?></title>
     <meta name="description" content="Prime Script — le script d'appel de Prime Vision Solutions : présentation, accroches, argumentaires et réponses aux objections, au bon moment.">
-    <meta name="theme-color" content="#061230">
     <meta name="csrf-token" content="<?= Sanitizer::e(Session::csrfToken()) ?>">
     <meta name="base-url" content="<?= Sanitizer::e(Http::baseUrl()) ?>">
-    <link rel="icon" type="image/png" href="<?= Sanitizer::e(View::url('assets/img/favicon.png')) ?>">
+    <link rel="icon" type="image/png" sizes="32x32" href="<?= Sanitizer::e(View::url('assets/img/favicon-32.png')) ?>">
+    <link rel="icon" type="image/png" sizes="64x64" href="<?= Sanitizer::e(View::url('assets/img/favicon.png')) ?>">
+    <meta name="theme-color" content="#05132a">
+    <link rel="apple-touch-icon" href="<?= Sanitizer::e(View::url('assets/img/apple-touch-icon.png')) ?>">
     <link rel="stylesheet" href="<?= Sanitizer::e(View::url('assets/css/tokens.css')) ?>">
     <link rel="stylesheet" href="<?= Sanitizer::e(View::url('assets/css/app.css')) ?>">
     <script>
@@ -49,8 +51,12 @@ $themeLabel = 'Mode sombre';
 
 <header class="app-header">
         <div class="app-header__bar">
-        <a class="brand" href="<?= Sanitizer::e(View::url(Auth::isAdmin() && $isAdminArea ? '/admin' : '/')) ?>" aria-label="Prime Script — accueil">
-            <img class="brand__logo" src="<?= Sanitizer::e(View::url('assets/img/logo-full.png')) ?>" alt="Prime Vision Solutions" width="166" height="52">
+        <a class="brand" href="<?= Sanitizer::e(View::url(Auth::isAdmin() && $isAdminArea ? '/admin' : '/')) ?>" aria-label="Prime Vision Solutions — Prime Script, accueil">
+            <?php /* Deux fichiers : le bleu nuit du logo disparaîtrait sur le fond sombre. */ ?>
+            <img class="brand__logo" src="<?= Sanitizer::e(View::url('assets/img/logo-horizontal.png')) ?>"
+                 data-logo-light alt="Prime Vision Solutions" width="197" height="38">
+            <img class="brand__logo" src="<?= Sanitizer::e(View::url('assets/img/logo-horizontal-dark.png')) ?>"
+                 data-logo-dark alt="" width="197" height="38" aria-hidden="true">
             <span class="brand__tag">Script</span>
         </a>
 

@@ -19,10 +19,12 @@ $flashes = Session::takeFlashes();
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title><?= Sanitizer::e(isset($title) ? $title . ' · Prime Script' : 'Connexion · Prime Script') ?></title>
-    <meta name="theme-color" content="#061230">
     <meta name="csrf-token" content="<?= Sanitizer::e(Session::csrfToken()) ?>">
     <meta name="base-url" content="<?= Sanitizer::e(Http::baseUrl()) ?>">
-    <link rel="icon" type="image/png" href="<?= Sanitizer::e(View::url('assets/img/favicon.png')) ?>">
+    <link rel="icon" type="image/png" sizes="32x32" href="<?= Sanitizer::e(View::url('assets/img/favicon-32.png')) ?>">
+    <link rel="icon" type="image/png" sizes="64x64" href="<?= Sanitizer::e(View::url('assets/img/favicon.png')) ?>">
+    <meta name="theme-color" content="#05132a">
+    <link rel="apple-touch-icon" href="<?= Sanitizer::e(View::url('assets/img/apple-touch-icon.png')) ?>">
     <link rel="stylesheet" href="<?= Sanitizer::e(View::url('assets/css/tokens.css')) ?>">
     <link rel="stylesheet" href="<?= Sanitizer::e(View::url('assets/css/app.css')) ?>">
     <script>
@@ -42,7 +44,7 @@ $flashes = Session::takeFlashes();
 <div class="auth-layout">
     <aside class="auth-aside" aria-hidden="true">
         <div>
-            <img class="auth-aside__logo" src="<?= Sanitizer::e(View::url('assets/img/logo-full-dark.png')) ?>" alt="Prime Vision Solutions" width="220" height="69">
+            <img class="auth-aside__logo" src="<?= Sanitizer::e(View::url('assets/img/logo-horizontal-dark.png')) ?>" alt="Prime Vision Solutions" width="252" height="48">
         </div>
         <div>
             <h2>Le bon discours, au bon moment.</h2>
@@ -59,7 +61,8 @@ $flashes = Session::takeFlashes();
     <main id="contenu" class="auth-main">
         <div class="auth-card">
             <div class="auth-card__brand">
-                <img src="<?= Sanitizer::e(View::url('assets/img/logo-full.png')) ?>" alt="Prime Vision Solutions" width="190" height="60">
+                <img data-logo-light src="<?= Sanitizer::e(View::url('assets/img/logo-horizontal.png')) ?>" alt="Prime Vision Solutions" width="210" height="40">
+                <img data-logo-dark src="<?= Sanitizer::e(View::url('assets/img/logo-horizontal-dark.png')) ?>" alt="Prime Vision Solutions" width="210" height="40">
             </div>
 
             <?php if ($flashes !== []): ?>

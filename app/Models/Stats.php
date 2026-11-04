@@ -98,13 +98,16 @@ final class Stats
      */
     public static function byService(int $days = 30): array
     {
+        // « s.position » est agrégé (MIN) et non nu : MySQL 5.7+ active
+        // ONLY_FULL_GROUP_BY par défaut et rejetait « ORDER BY s.position »,
+        // ce qui faisait échouer tout le tableau de bord en production.
         return Db::all(
-            'SELECT s.id, s.name, s.icon, s.price_from, COUNT(c.id) AS total
+            'SELECT s.id, s.name, s.icon, s.price_from, MIN(s.position) AS position, COUNT(c.id) AS total
              FROM services s
              LEFT JOIN calls c ON c.service_id = s.id
                   AND c.created_at >= DATE_SUB(NOW(), INTERVAL ' . max(1, min(365, $days)) . ' DAY)
              GROUP BY s.id, s.name, s.icon, s.price_from
-             ORDER BY total DESC, s.position ASC'
+             ORDER BY total DESC, position ASC'
         );
     }
 
@@ -115,13 +118,14 @@ final class Stats
      */
     public static function bySector(int $days = 30): array
     {
+        // Même précaution que byService() : MIN(s.position) puis tri sur l'alias.
         return Db::all(
-            'SELECT s.id, s.name, s.icon, COUNT(c.id) AS total
+            'SELECT s.id, s.name, s.icon, MIN(s.position) AS position, COUNT(c.id) AS total
              FROM sectors s
              LEFT JOIN calls c ON c.sector_id = s.id
                   AND c.created_at >= DATE_SUB(NOW(), INTERVAL ' . max(1, min(365, $days)) . ' DAY)
              GROUP BY s.id, s.name, s.icon
-             ORDER BY total DESC, s.position ASC'
+             ORDER BY total DESC, position ASC'
         );
     }
 

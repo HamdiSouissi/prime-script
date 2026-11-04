@@ -128,6 +128,12 @@ cp config/config.example.php config/config.php
 
 Le fichier `config/config.php` est **ignoré par Git** et interdit d'accès par `.htaccess`.
 
+> **Installation dans un sous-dossier** (`https://exemple.fr/prime-script/`) : renseignez
+> `app.base_url` avec l'URL complète, **sous-dossier compris**. C'est la seule façon fiable
+> de connaître le préfixe — certains serveurs (serveur intégré `php -S`, certaines
+> passerelles FastCGI) renseignent `SCRIPT_NAME` avec le chemin *demandé* et non le script
+> exécuté, ce qui fausserait la détection automatique.
+
 ### 3.5 Pointer le serveur web sur `public/`
 
 **Idéal** — le document root de l'hébergement pointe sur le dossier `public/`.
@@ -174,13 +180,59 @@ curl -I https://votre-domaine.fr/login   # doit répondre 200
 ```
 
 Un script de fumée optionnel est fourni pour un environnement local. Il parcourt
-41 vérifications : connexion, parcours complet d'un appel, objections en JSON,
-enregistrement, historique, export CSV et contrôle d'accès administrateur.
+66 vérifications : connexion, parcours complet d'un appel, objections en JSON,
+enregistrement, historique, export CSV, navigation transversale (aucun lien interne
+mort, y compris sur les URL à plusieurs segments) et contrôle d'accès administrateur.
 
 ```bash
 BASE=http://localhost:8099 bash tools/smoke-test.sh
 # si PHP n'est pas dans le PATH de la machine qui lance le test :
 PHP_CLI=/usr/bin/php8.2 BASE=http://localhost:8099 bash tools/smoke-test.sh
+```
+
+La détection du chemin d'installation se teste séparément, sans serveur (8 configurations
+de déploiement : racine, sous-dossier, document root au-dessus de `public/`, passerelle
+qui renseigne `SCRIPT_NAME` avec le chemin demandé…) :
+
+```bash
+php tools/test-urls.php
+```
+
+La compatibilité MySQL des requêtes agrégées se contrôle également sans serveur :
+
+```bash
+php tools/test-sql.php
+```
+
+> **Pourquoi ce contrôle ?** Depuis MySQL 5.7, le mode `ONLY_FULL_GROUP_BY` est actif
+> par défaut : il refuse une colonne non agrégée dans le `ORDER BY` d'une requête
+> groupée (erreur 1055). SQLite — la base de démonstration — ne reproduit pas cette
+> règle, si bien qu'une requête invalide pour MySQL pouvait passer tous les tests
+> locaux puis faire échouer le tableau de bord en production.
+> Ce script relit le code source et vérifie chaque requête groupée.
+
+### 3.9 En cas d'erreur « Une erreur est survenue »
+
+Lancez le diagnostic : il vérifie l'environnement, la configuration, la base, chaque
+requête utilisée par le tableau de bord et « Mes appels », puis **rejoue le rendu de ces
+deux écrans** exactement comme le navigateur. En cas d'échec, il affiche la classe de
+l'exception, le message, le fichier et la ligne.
+
+```bash
+php tools/diagnose.php
+# terminal Windows sans couleurs :
+php tools/diagnose.php --plain
+```
+
+Le détail des erreurs 500 est aussi écrit dans `storage/logs/php-AAAA-MM-JJ.log`
+si le dossier est accessible en écriture, sinon dans le journal du serveur web.
+
+**Si le message est un `SQLSTATE`** (par exemple `42S22 … Unknown column`), le code est
+correct mais la base est en retard d'une migration :
+
+```bash
+php tools/migrate.php --check   # liste ce qui manque, sans rien modifier
+php tools/migrate.php           # applique les corrections
 ```
 
 Le script réinitialise d'abord les compteurs de tentatives de connexion
@@ -204,7 +256,7 @@ prime-script/
 │       ├── css/tokens.css      variables de design (:root), thèmes clair/sombre
 │       ├── css/app.css         composants et mises en page
 │       ├── js/app.js           interactions (drawer, accordéons, confirmations, recherche)
-│       ├── img/                logos Prime Vision + sprite SVG icons.svg
+│       ├── img/                logos Prime Vision (voir § 4.1) + sprite SVG icons.svg
 │       └── fonts/              Bricolage Grotesque + Public Sans (woff2, auto-hébergées)
 ├── app/
 │   ├── bootstrap.php           chargement, configuration, erreurs, session, routes
@@ -257,6 +309,45 @@ prime-script/
 ```
 
 ---
+
+### 4.1 Identité visuelle (logos et icônes)
+
+Tous les fichiers sont générés à partir du **logo officiel Prime Vision Solutions** (le
+verrou vertical fourni : marque RV au-dessus de « PRIME VISION / SOLUTIONS »). Fonds
+transparents, tailles calées sur l'usage réel.
+
+| Fichier | Taille | Usage |
+|---------|--------|-------|
+| `logo-horizontal.png` | 504 × 96 | en-tête de l'application, carte de connexion |
+| `logo-horizontal-dark.png` | 504 × 96 | même usage en thème sombre (bleu nuit → blanc cassé) |
+| `logo-full.png` | 555 × 300 | verrou vertical, documents et pages hors application |
+| `logo-full-dark.png` | 555 × 300 | idem sur fond sombre |
+| `logo-mark.png` | 371 × 240 | marque seule (RV), espaces étroits |
+| `logo-mark-dark.png` | 371 × 240 | marque seule sur fond sombre |
+| `favicon.png` / `favicon-32.png` | 64 / 32 px | onglet du navigateur |
+| `apple-touch-icon.png` | 180 px | écran d'accueil iOS / Android |
+
+**Pourquoi deux jeux de couleurs ?** Le bleu nuit du logo (`#05132A`) disparaît sur le fond
+sombre de l'application (`#050b1e`). La version « dark » reprend la marque en blanc cassé et
+éclaircit le dégradé bleu du V. Le basculement se fait en CSS (`data-logo-light` /
+`data-logo-dark`), sans JavaScript : le bon fichier est déjà dans la page, aucun clignotement.
+
+**Remplacer le logo** : déposez les nouveaux fichiers sous ces mêmes noms, en conservant les
+proportions (5,25:1 pour la version horizontale). Les attributs `width` / `height` des balises
+`<img>` évitent tout décalage de mise en page au chargement.
+
+Pour régénérer tous les fichiers depuis le visuel carré d'origine :
+
+```bash
+python3 tools/build-logo.py        # nécessite Pillow : pip install pillow
+```
+
+Le script détoure le fond uni, recompose la version horizontale à partir de la marque et du
+nom, produit les variantes sombres et les icônes. La source est `tools/brand/logo-source.png`.
+
+Les couleurs de la marque sont centralisées dans `public/assets/css/tokens.css`
+(`--brand-night`, `--brand-blue`, `--brand-cyan`), relevées sur le logo : `#05132A`,
+`#0267D0`, `#2F8BF0`.
 
 ## 5. Base de données
 
@@ -422,8 +513,23 @@ mysqldump -u prime_script -p --single-transaction prime_script > sauvegarde-$(da
 ```
 
 **Mise à jour du code** : déposez les fichiers, vérifiez `php -l` sur les fichiers modifiés,
-rechargez PHP-FPM. Aucune migration automatique n'est nécessaire pour cette version
-(schéma inchangé depuis `schema.sql`).
+puis **vérifiez le schéma de la base** — c'est l'étape la plus souvent oubliée :
+
+```bash
+php tools/migrate.php --check   # n'écrit rien : liste les écarts
+php tools/migrate.php           # applique les corrections manquantes
+```
+
+Une base installée **avant** l'ajout d'une fonctionnalité n'a pas ses nouvelles colonnes.
+Le code, lui, est à jour : d'où une erreur 500 alors que tout est correct côté fichiers.
+Exemple réel : `Unknown column 'c.do_not_call'` sur le tableau de bord et « Mes appels »,
+parce que la migration `2026_11_04_contenu_pret_a_l_emploi.sql` n'avait jamais été
+exécutée sur une base créée plus tôt.
+
+> Une base neuve créée avec `database/schema.sql` est déjà complète : `tools/migrate.php`
+> n'y trouvera rien à faire. Seules les bases existantes sont concernées.
+
+Le détail des migrations est dans `database/migrations/`.
 
 **Développement local sans MySQL** (démonstration uniquement) :
 
@@ -433,6 +539,10 @@ cp config/config.example.php config/config.php
 php tools/make-sample-db.php                 # génère storage/prime-script.sample.sqlite
 php -S localhost:8099 -t public               # http://localhost:8099
 ```
+
+> Avec le serveur intégré, `SCRIPT_NAME` vaut le chemin demandé (et non `index.php`) :
+> l'application en tient compte depuis la v1.0.1, mais si vous installez le site dans un
+> sous-dossier, renseignez toujours `app.base_url` (voir §3.4).
 
 **Périmètre v1 volontairement exclu** (l'architecture reste ouverte) :
 téléphonie / CRM, enregistrement des appels, jeu de rôle, génération de contenu par IA,

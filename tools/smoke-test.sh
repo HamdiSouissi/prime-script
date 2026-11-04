@@ -47,6 +47,16 @@ check "speech service 1 (200)" '[ "$(curl -s -b "$JAR" -o /tmp/speech.html -w "%
 check "blocs du speech affichés" 'grep -q "Questions de découverte" /tmp/speech.html'
 check "bouton Objections présent" 'grep -q "drawer-objections" /tmp/speech.html'
 
+# Les URL doivent rester justes sur les pages à plusieurs segments : une détection
+# fautive du sous-dossier d'installation préfixait les liens par le chemin courant
+# (…/appel/assets/…) et tronquait la route (page introuvable). Régression vérifiée ici.
+check "liens d'assets corrects sur une page à 2 segments" \
+  '! curl -s -b "$JAR" "$BASE/appel/speech?service=1" | grep -qE "href=\"[^\"]*/appel/assets/"'
+check "navigation « Mes appels » présente sur une page à 2 segments" \
+  'curl -s -b "$JAR" "$BASE/appel/speech?service=1" | grep -q "app-nav__link"'
+check "navigation « Bien démarrer » présente sur /admin/*" \
+  'curl -s -b "$JAR" "$BASE/appel/terminer" | grep -q "Bien démarrer"'
+
 check "objections JSON" 'curl -s -b "$JAR" -H "Accept: application/json" "$BASE/appel/objections" | grep -q "\"ok\":true"'
 check "objections : réponse recommandée fournie" 'curl -s -b "$JAR" -H "Accept: application/json" "$BASE/appel/objections" | grep -qi "réponse\|<li"'
 
@@ -56,6 +66,14 @@ R=$(curl -s -b "$JAR" -H "Accept: application/json" -H "X-Requested-With: XMLHtt
   -d "_token=$TOKEN" -d "result=rdv" -d "service_id=1" -d "note=Test automatique")
 check "enregistrement de l'appel (201 JSON)" '[ "$R" = "201" ]'
 check "réponse JSON ok" 'grep -q "\"ok\":true" /tmp/end.json'
+
+echo "== Identité visuelle"
+check "logo horizontal servi" '[ "$(curl -s -o /dev/null -w "%{http_code}" "$BASE/assets/img/logo-horizontal.png")" = "200" ]'
+check "logo variante sombre servie" '[ "$(curl -s -o /dev/null -w "%{http_code}" "$BASE/assets/img/logo-horizontal-dark.png")" = "200" ]'
+check "favicon 32 px servi" '[ "$(curl -s -o /dev/null -w "%{http_code}" "$BASE/assets/img/favicon-32.png")" = "200" ]'
+check "icône iOS servie" '[ "$(curl -s -o /dev/null -w "%{http_code}" "$BASE/assets/img/apple-touch-icon.png")" = "200" ]'
+check "logo affiché dans l'en-tête connecté" 'curl -s -b "$JAR" "$BASE/" | grep -q "logo-horizontal.png"'
+check "variante sombre présente pour le thème sombre" 'curl -s -b "$JAR" "$BASE/" | grep -q "logo-horizontal-dark.png"'
 
 echo "== Contenu prêt à l'emploi"
 check "guide « Bien démarrer » accessible" 'curl -s -b "$JAR" "$BASE/guide" | grep -qi "gles d.or"'
@@ -77,6 +95,22 @@ check "écran 5 : phrases de conclusion" 'curl -s -b "$JAR" "$BASE/appel/termine
 check "résultat « Ne plus rappeler » proposé" 'curl -s -b "$JAR" "$BASE/appel/terminer" | grep -q "ne_plus_rappeler"'
 
 echo "== Historique & export"
+check "historique accessible" '[ "$(curl -s -b "$JAR" -o /tmp/hist.html -w "%{http_code}" "$BASE/historique")" = "200" ]'
+check "export CSV de l'historique" 'curl -s -b "$JAR" "$BASE/historique/export.csv" | head -1 | grep -q "Date"'
+
+echo "== Navigation transversale"
+# Aucun lien interne ne doit renvoyer 404 : c'est exactement le symptôme observé
+# quand la base d'URL était déduite du chemin courant (…/appel/historique).
+for page in / /appel/presentation /appel/services /appel/terminer /guide /historique /admin/blocs; do
+  DEAD=$(curl -s -b "$JAR" "$BASE$page" \
+    | grep -o "href=\"$BASE[^\"]*\"" | sed 's/^href="//;s/"$//' | sort -u \
+    | while read -r LINK; do
+        CODE=$(curl -s -b "$JAR" -o /dev/null -w '%{http_code}' "$LINK")
+        [ "$CODE" = "404" ] && printf '%s ' "$LINK"
+      done)
+  check "aucun lien interne mort depuis $page" '[ -z "$DEAD" ]'
+done
+
 echo "== Contrôle d'accès"
 check "commercial interdit sur /admin (403)" '[ "$(curl -s -b "$JAR" -o /dev/null -w "%{http_code}" "$BASE/admin")" = "403" ]'
 check "déconnexion (302)" '[ "$(curl -s -b "$JAR" -X POST "$BASE/deconnexion" -d "_token=$TOKEN" -o /dev/null -w "%{http_code}")" = "302" ]'
